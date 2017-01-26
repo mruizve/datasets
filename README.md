@@ -1,2 +1,2 @@
-# image-datasets
-Automation tools for splitting image datasets into training and testing sets
+# facedata
+Automation tools for splitting face datasets into training and testing sets
