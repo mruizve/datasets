@@ -1,2 +1,2 @@
 # image-datasets
-Automation tools for splitting image dataset into training and testing sets
+Automation tools for splitting image datasets into training and testing sets
