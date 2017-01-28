@@ -15,3 +15,4 @@ set( CMAKE_LIBRARY_OUTPUT_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}/lib" )
 
 add_executable( aligner src/aligner.cpp )
 target_link_libraries( aligner ${OpenCV_LIBS} )
+target_compile_definitions( aligner PRIVATE DEBUGGING="" )

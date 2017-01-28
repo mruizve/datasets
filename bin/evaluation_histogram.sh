@@ -2,15 +2,12 @@
 
 # this script is executed automatically by ./evaluation.sh
 # for manual execution remember to define the following environment
-# variables: $COUNT
+# variables:
 
-[ -z "$COUNT" ] && echo "COUNT is not defined" && exit 1;
-
-# get the maximum and minimum number of images for identity
-HMIN=$(cat $COUNT|awk '{printf "%03d\n",$2}'|sort|uniq|head -n1)
-HMIN=${HMIN##*0}
-HMAX=$(cat $COUNT|awk '{printf "%03d\n",$2}'|sort|uniq|tail -n1)
-HMAX=${HMAX##*0}
+[ -z "$DATASET" ] && echo "(EE) $0: DATASET is not defined" >&2 && exit 1;
+[ -z "$COUNT" ] && echo "(EE) $0: COUNT is not defined" >&2 && exit 1;
+[ -z "$HMIN" ] && echo "(EE) $0: HMIN is not defined" >&2 && exit 1;
+[ -z "$HMAX" ] && echo "(EE) $0: HMAX is not defined" >&2 && exit 1;
 
 # generate histogram values
 H="";
