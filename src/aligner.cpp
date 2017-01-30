@@ -1,94 +1,192 @@
+// C headers
+#include<errno.h>
+#include<fcntl.h>
 #include<stdio.h>
+#include<unistd.h>
+#include<sys/stat.h>
+
+// C++ headers
+#include<fstream>
 #include<string>
 #include<opencv2/opencv.hpp>
 
-// extract coordinates values from a 'delimiter'-separated list
-template<typename T> T getCoordinates(std::stringstream& ss, const char delimiter)
+// extract values from a list
+std::vector<cv::Point2f> getCoordinates(const std::string list, const int n, const char delimiter)
 {
-	T output;
-    std::string token;
+	std::stringstream ss(list);
+	std::vector<cv::Point2f> p;
 
-	// first value
-    std::getline(ss,token,delimiter);
-    output.x=strtof(token.c_str(),NULL);
+	// extract n coordinate pairs
+	for( int i=0; n>i; i++ )
+	{
+		std::string strx,stry;
+		std::getline(ss,strx,delimiter);
+		std::getline(ss,stry,delimiter);
 
-	// second value
-    std::getline(ss,token,delimiter);
-    output.y=strtof(token.c_str(),NULL);
+		float x=strtof(strx.c_str(),NULL);
+		float y=strtof(stry.c_str(),NULL);
+		p.push_back(cv::Point2f(x,y));
+	}
 
-    return output;
-}
-
-// template wrapper: integer coordinates
-cv::Point getCoordinates2i(std::stringstream& ss, const char delimiter)
-{
-	return getCoordinates<cv::Point>(ss,delimiter);
-}
-
-// template wrapper: floating coordinates
-cv::Point2f getCoordinates2f(std::stringstream& ss, const char delimiter)
-{
-	return getCoordinates<cv::Point2f>(ss,delimiter);
+    return p;
 }
 
 int main(int argc, char *argv[])
 {
+	int err;
+	
 	// validate input arguments
-	if( 5!=argc )
+	if( 4!=argc )
 	{
 		fprintf(stderr,
-			"\nusage: %s source landmarks dimensions destination\n\n"
-			"   source: input image\n"
-			"   landmarks: comma separated coordinates of the eyes (center), nose and mouth\n"
-			"   dimensions: output dimensions (e.g., 224x224) \n"
-			"   destination: output image\n\n",
+			"\nusage: %s dataset association dimension\n\n"
+			"   dataset: full path to the dataset root directory\n"
+			"   association: association file generated using the evaluation scripts\n"
+			"   dimension: dimensions of the output images (e.g., 224x224) \n",
 			argv[0]);
 
-		return 1;
+		return -1;
 	}
 
-	// load input image
-	cv::Mat input=cv::imread(argv[1]);
-	if( NULL==input.data )
-	{
-		fprintf(stderr,"(EE) %s: cannot load the input image\n     >> input: '%s'\n",argv[0],argv[1]);
-		return 1;
+	// validate dataset directory
+    struct stat stats;
+    std::string dataset(argv[1]); 
+    err=stat(argv[1],&stats);
+    if( 0>err )
+    {
+		fprintf(stderr,"\n(EE) %s: invalid dataset directory\n(EE) >>> dataset: '%s'",argv[0],argv[1]);
+		return -1;
 	}
 
-	// extract landmarks
-	std::stringstream ss(argv[2]);
-	cv::Point2f le=getCoordinates2f(ss,','); // left eye
-	cv::Point2f re=getCoordinates2f(ss,','); // right eye
-	cv::Point2f n=getCoordinates2f(ss,',');  // nose
-	cv::Point2f m=getCoordinates2f(ss,',');  // mouth
-
-	#ifdef DEBUGGING
-		// draw landmarks
-		cv::line(input,le,re,cv::Scalar(255,255,255),3);
-		cv::line(input,le,n,cv::Scalar(255,255,255),3);
-		cv::line(input,re,n,cv::Scalar(255,255,255),3);
-		cv::line(input,n,m,cv::Scalar(255,255,255),3);
-		cv::circle(input,le,7,cv::Scalar(255,0,0),-1);
-		cv::circle(input,re,7,cv::Scalar(255,0,255),-1);
-		cv::circle(input,n,7,cv::Scalar(0,0,255),-1);
-		cv::circle(input,m,7,cv::Scalar(0,255,255),-1);
-	#endif
-
-	// extract output dimensions
-	ss.str(argv[3]);
-	cv::Point dimension=getCoordinates2i(ss,'x'); // x: width, y: height
-
-	cv::Point d=le-re;
-	if( sqrt(d.x*d.x+d.y*d.y)<30 )
+	// open the association file
+	std::string fullpath(std::string(argv[1])+"/"+argv[2]);
+	std::ifstream association(fullpath.c_str());
+	if( association.fail() )
 	{
-		fprintf(stderr,"%s --> cazzo!\n",argv[1]);
-	} 
+		fprintf(stderr,"\n(EE) %s: invalid association file\n(EE) >>> association: '%s'",argv[0],fullpath.c_str());
+		return -1;
+	}
+
+	// get output images dimensions
+	std::vector<cv::Point2f> dims=getCoordinates(argv[3],1,'x');
 
 	#ifdef DEBUGGING
-		cv::namedWindow("debug",CV_WINDOW_NORMAL);
-		cv::imshow("debug",input);
-		cv::waitKey(100);
+		int verbose=1;
+		int olderr,newerr;
+		std::string iwname("input -- press ESC key to stop preview");
+		std::string owname("output -- press ESC key to stop preview");
+
+		// redirection of stderr to suppress OpenCV/QT useless info
+		fflush(stderr);
+		olderr=dup(STDERR_FILENO);
+		newerr=open("/dev/null",O_WRONLY);
+		dup2(newerr,STDERR_FILENO);
+		close(newerr);
+			cv::namedWindow(iwname,CV_WINDOW_NORMAL);
+			cv::namedWindow(owname.at(1),CV_WINDOW_NORMAL);
+		fflush(stderr);
+		dup2(olderr,STDERR_FILENO);
+		close(olderr);
+
+		// wait some time to avoid segmentation fault when early errors occurs
+		sleep(1);
 	#endif
+
+	// image processing loop
+	std::string line;
+	std::string ipath,label,opath,strbbox,strmarks;
+	int processed=0;
+	while( std::getline(association,line) )
+	{
+		// parse line
+		std::stringstream ss(line);
+		std::getline(ss,opath,' ');
+		std::getline(ss,label,' ');
+		std::getline(ss,ipath,' ');
+		std::getline(ss,strbbox,' ');
+		std::getline(ss,strmarks,' ');
+		
+		// load the input image
+		ipath=dataset+"/"+ipath;
+		cv::Mat input=cv::imread(ipath);
+		if( NULL==input.data )
+		{
+			fprintf(stderr,"\n(EE) %s: cannot load image\n(EE) >>> image: '%s'",argv[0],ipath.c_str());
+			return -1;
+		}
+
+		// extract bounding boxes
+		std::vector<cv::Point2f> bb=getCoordinates(strbbox,2,','); // {(left,top),(width,height)}
+
+		// extract landmarks
+		std::vector<cv::Point2f> lm=getCoordinates(strmarks,4,','); // {(left eye),(right eye),(nose),(mouth)}
+
+		// output landmarks locations
+		cv::Point2f eyes=lm[0]-lm[1];
+		cv::Point2f nose=lm[2]-lm[1];
+		cv::Point2f center=0.5*dims[0];
+
+		float ho=35.0f; // horizontal offset
+		float vo=35.0f; // vertical offset
+		float vs=0.8f;  // vertical shift
+
+		std::vector<cv::Point2f> dst;
+		dst.push_back(center+cv::Point2f(-ho,    -vs*vo));
+		dst.push_back(center+cv::Point2f( ho,    -vs*vo));
+		dst.push_back(center+cv::Point2f(  0, (2-vs)*vo));
+		
+		// input landmarks locations
+		std::vector<cv::Point2f> src;
+		src.push_back(lm[0]);
+		src.push_back(lm[1]);
+		src.push_back(lm[3]);
+
+		// compute perspective transform
+		cv::Mat H=cv::getAffineTransform(src,dst);
+
+		// align face used the above computed transform
+		cv::Mat output;
+		cv::warpAffine(input,output,H,cv::Size(dims[0].x,dims[0].y),cv::INTER_CUBIC);
+
+		// save output image
+		opath=dataset+"/"+opath;
+		cv::imwrite(opath,output);
+
+		processed++;
+		printf("%06d\b\b\b\b\b\b",processed);
+		fflush(stdout);
+
+		#ifdef DEBUGGING
+			if( verbose )
+			{
+				// draw bounding box
+				cv::rectangle(input,bb[0],bb[0]+bb[1],cv::Scalar(0,255,0),3);
+
+				// draw landmarks
+				cv::line(input,lm[0],lm[1],cv::Scalar(255,255,255),3);
+				cv::line(input,lm[0],lm[2],cv::Scalar(255,255,255),3);
+				cv::line(input,lm[1],lm[2],cv::Scalar(255,255,255),3);
+				cv::line(input,lm[2],lm[3],cv::Scalar(255,255,255),3);
+				cv::circle(input,lm[0],7,cv::Scalar(255,0,0),-1);
+				cv::circle(input,lm[1],7,cv::Scalar(255,0,255),-1);
+				cv::circle(input,lm[2],7,cv::Scalar(0,0,255),-1);
+				cv::circle(input,lm[3],7,cv::Scalar(0,255,255),-1);
+
+				// show input and output images 
+				cv::imshow(iwname,input);
+				cv::imshow(owname,output);
+				int key=cv::waitKey(500);
+
+				// update verbose flags
+				verbose=(key!=0x1b);
+				if( !verbose )
+				{
+					cv::destroyWindow(iwname);
+					cv::destroyWindow(owname);
+				}
+			}
+		#endif
+	}
 
 	return 0;
 }

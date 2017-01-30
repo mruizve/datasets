@@ -12,7 +12,7 @@ if [ ! -f $1/info.sh ]; then
 	exit 1 
 fi
 
-source $1/info.sh
+source $1/info.sh || exit 1
 
 if [ "0" -ne "$?" ]; then
 	echo "[error] cannot load dataset info"
@@ -22,7 +22,7 @@ fi
 export DATASET="$1"
 
 # validate dataset info
-source ${0%/*}/evaluation_check.sh
+source ${0%/*}/evaluation_check.sh || exit 1
 
 # get number of images
 NIMG=$(cat $LABELS |wc -l)
@@ -31,7 +31,7 @@ NIMG=$(cat $LABELS |wc -l)
 NLBL=$(cat $LABELS |cut -d\  -f2|sort|uniq|wc -l)
 
 # generate a record counting the number of images for each label
-cat "$LABELS" |cut -d\  -f2|sort|uniq -c|awk '{printf "%d %d\n",$2,$1}' > $COUNT
+cat "$LABELS" |cut -d\  -f2|sort -n|uniq -c|awk '{printf "%d %d\n",$2,$1}' > "$COUNT"
 
 # get the maximum and minimum number of images for label
 HMIN=$(cat $COUNT|awk '{printf "%03d\n",$2}'|sort|uniq|head -n1)
@@ -40,10 +40,7 @@ export HMIN=${HMIN##*0}
 export HMAX=${HMAX##*0}
 
 # retrieve values and generate histogram plot
-H=($(${0%/*}/evaluation_histogram.sh))
-if [ "0" -ne "$?" ]; then
-	exit 1
-fi
+H=($(${0%/*}/evaluation_histogram.sh)) || exit 1
 
 # show stats
 echo "[+] dataset statistics";
@@ -93,11 +90,17 @@ echo;
 # generate output data (file paths)
 OUTPUT_LABELS=$(printf $OUTPUT_LABELS $n);
 OUTPUT_IMAGES=$(printf $OUTPUT_IMAGES $n);
-OUTPUT_BBOXES=$(printf $OUTPUT_BBOXES $n);
-OUTPUT_LANDMARKS=$(printf $OUTPUT_LANDMARKS $n);
+OUTPUT_ASSOCIATION=$(printf $OUTPUT_ASSOCIATION $n);
+
+# generate output hierarchy
+${0%/*}/evaluation_data.sh || exit 1
 
 # generate output data
-${0%/*}/evaluation_data.sh
+printf " '- generating training/testing data ... 000000\b\b\b\b\b\b"
+TBEGIN=$(date +%s)
+${0%/*}/aligner "$DATASET" "${OUTPUT_ASSOCIATION##*/}" "$OUTPUT_SIZE" || exit 1
+TEND=$(date +%s)
+echo "done in $(($TEND-$TBEGIN)) seconds!"
 
 # delete extra data
 rm $COUNT

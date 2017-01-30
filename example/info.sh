@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
 
-# example of a dataset script, to be found on the dataset root directory
-
 # file system hierarchy
 export ANNOTATIONS="annotations"
 export INPUT="images/original"
@@ -18,6 +16,12 @@ export OUTPUT_SIZE="224x224"
 export BBOXES="bboxes.txt"
 export LABELS="identities.txt"
 export LANDMARKS="landmarks.txt"
+
+# bounding boxes filtering
+# (convert to comma separated list)
+export BBOXES_FILTER='{
+	printf "%s,%s,%s,%s", $2,$3,$4,$5;
+}'
 
 # landmarks filtering
 # (the face aligner use four facial points: both eyes, the nose and

@@ -6,11 +6,14 @@
 
 [ -z "$DATASET" ] && echo "(EE) $0: DATASET is not defined" >&2 && exit 1;
 
+echo "[+] dataset's 'info.sh' check"
+
 # validate dataset file system hierarchy
 variables=("ANNOTATIONS" "INPUT" "OUTPUT")
 directories=("$ANNOTATIONS" "$INPUT" "$OUTPUT")
 values=("annotations" "input data" "output data")
 
+printf " |- file system hierarchy... "
 for i in "${!directories[@]}"; do
 	# validate directory definition
 	if [ -z "${directories[$i]}" ]; then
@@ -27,26 +30,29 @@ for i in "${!directories[@]}"; do
 	# export directory with relative path
 	export ${variables[$i]}=${directories[$i]}
 done
+echo "done!"
 
-# identify the input data type
+# identify the input and output data formats
+printf " |- data formats... "
 if [ -z "$INPUT_EXT" ]; then
 	echo "(WW) $0: assuming that the dataset is composed by .png images" >&2
 	export INPUT_EXT="png"
 fi
 
-# identify the output data type
 if [ -z "$OUTPUT_EXT" ]; then
 	echo "(WW) $0: assuming that the dataset is composed by .png images" >&2
 	export OUTPUT_EXT="png"
 fi
 
-# identify the output dimensions
 if [ -z "$OUTPUT_SIZE" ]; then
 	echo "(WW) $0: assuming that the output images size is 224x224" >&2
 	export OUTPUT_SIZE="224x224"
 fi
+echo "input={$INPUT_EXT,?x?}, output={$OUTPUT_EXT,$OUTPUT_SIZE}."
 
 # verify annotations:
+printf " '- annotations... "
+
 # -- labels (mandatory)
 if [ -f "$DATASET/$ANNOTATIONS/$LABELS" ]; then
 	export LABELS="$DATASET/$ANNOTATIONS/$LABELS"
@@ -59,7 +65,13 @@ fi
 if [ -f "$DATASET/$ANNOTATIONS/$BBOXES" ]; then
 	export BBOXES="$DATASET/$ANNOTATIONS/$BBOXES"
 else
-	export BBOXES=""
+	echo "(EE) $0: missing faces bounding boxes" >&2
+	exit 1
+fi
+
+# -- bounding boxes filter (optional)
+if [ -z "$BBOXES_FILTER" ]; then
+	export BBOXES_FILTER='{ printf "%s",$0; }'
 fi
 
 # -- facial landmarks (mandatory)
@@ -75,10 +87,12 @@ if [ -z "$LANDMARKS_FILTER" ]; then
 	export LANDMARKS_FILTER='{ printf "%s",$0; }'
 fi
 
+echo "done!"
+echo
+
 # I/O file streams
 export COUNT="$DATASET/count.txt"
 export OUTPUT_LABELS="$DATASET/%02d_list.txt"
 export OUTPUT_IMAGES="$DATASET/%02d_images.txt"
-export OUTPUT_BBOXES="$DATASET/%02d_bboxes.txt"
-export OUTPUT_LANDMARKS="$DATASET/%02d_landmarks.txt"
+export OUTPUT_ASSOCIATION="$DATASET/%02d_association.txt"
 
