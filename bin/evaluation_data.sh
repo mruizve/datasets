@@ -4,32 +4,50 @@
 # for manual execution remember to define the following environment
 # variables:
 
-[ -z "$DATASET" ] && echo "(EE) $0: DATASET is not defined" >&2 && exit 1;
-[ -z "$INPUT" ] && echo "(EE) $0: INPUT is not defined" >&2 && exit 1;
-[ -z "$OUTPUT" ] && echo "(EE) $0: OUTPUT is not defined" >&2 && exit 1;
-[ -z "$INPUT_EXT" ] && echo "(EE) $0: INPUT_EXT is not defined" >&2 && exit 1;
-[ -z "$OUTPUT_EXT" ] && echo "(EE) $0: OUTPUT_EXT is not defined" >&2 && exit 1;
-[ -z "$OUTPUT_SIZE" ] && echo "(EE) $0: OUTPUT_SIZE is not defined" >&2 && exit 1;
-[ -z "$BBOXES" ] && echo "(EE) $0: BBOXES is not defined" >&2 && exit 1;
-[ -z "$BBOXES_FILTER" ] && echo "(EE) $0: BBOXES_FILTER is not defined" >&2 && exit 1;
-[ -z "$LANDMARKS" ] && echo "(EE) $0: LANDMARKS is not defined" >&2 && exit 1;
-[ -z "$LANDMARKS_FILTER" ] && echo "(EE) $0: LANDMARKS_FILTER is not defined" >&2 && exit 1;
-[ -z "$OUTPUT_LABELS" ] && echo "(EE) $0: OUTPUT_LABELS is not defined" >&2 && exit 1;
-[ -z "$OUTPUT_IMAGES" ] && echo "(EE) $0: OUTPUT_IMAGES is not defined" >&2 && exit 1;
-[ -z "$OUTPUT_ASSOCIATION" ] && echo "(EE) $0: OUTPUT_ASSOCIATION is not defined" >&2 && exit 1;
+echo "[+] output data"
+
+# validate variables definitions
+printf " |- check variables... "
+if [ -z "$DATASET" ]; then
+	echo -e "\r[+] ${RED}check variables${WHT}: '\$DATASET' empty or not defined" >&2
+	exit 1
+fi
+
+if [ -z "$INPUT" -o -z "$OUTPUT" ]; then
+	echo -e "\r[+] ${RED}check variables${WHT}: either '\$INPUT' or '\$OUTPUT' empty or not defined" >&2
+	exit 1
+fi
+
+if [ -z "$INPUT_EXT" -o -z "$OUTPUT_EXT" -o -z "$OUTPUT_SIZE" ]; then
+	echo -e "\r[+] ${RED}check variables${WHT}: missing some input/output data format information" >&2
+	exit 1
+fi
+
+if [ -z "$LABELS" -o -z "$BBOXES" -o -z "$LANDMARKS" -o -z "$COUNT" ]; then
+	echo -e "\r[+] ${RED}check variables${WHT}: missing some annotations files" >&2
+	exit 1
+fi
+
+if [ -z "$BBOXES_FILTER" -o -z "$LANDMARKS_FILTER" ]; then
+	echo -e "\r[+] ${RED}check variables${WHT}: missing some annotations filters" >&2
+	exit 1
+fi
+
+if [ -z "$OUTPUT_LABELS" -o -z "$OUTPUT_IMAGES" -o -z "$OUTPUT_ASSOCIATION" ]; then
+	echo -e "\r[+] ${RED}check variables${WHT}: missing some output files paths" >&2
+	exit 1
+fi
+echo "done!"
 
 # get number of images by identity
 n=${OUTPUT_LABELS##*/}
 n=${n%_*}
 
-echo "[+] output data"
-
 # generate list of labels
-printf " |- generating labels list on '$OUTPUT_LABELS'... "
+printf " |- generating labels list... "
 > "$OUTPUT_LABELS";
-cat "$COUNT"|awk -v i=$n '{if($2==i) printf "%s\n",$1}' >> "$OUTPUT_LABELS";
+cat "$COUNT"|awk -v i="$n" '{if($2==i) printf "%s\n",$1}' >> "$OUTPUT_LABELS";
 echo  "done!"
-
 
 printf " |- processing labels... 000000\b\b\b\b\b\b"
 > "$OUTPUT_IMAGES"
@@ -46,7 +64,6 @@ done
 sort "$OUTPUT_IMAGES" -o "$OUTPUT_IMAGES"
 TEND=$(date +%s)
 echo "done in $(($TEND-$TBEGIN)) seconds!"
-echo " |- raw list of labeled images written to '$OUTPUT_IMAGES'"
 
 # create data folders
 printf " |- creating output directories inside '$DATASET/$OUTPUT'... "
@@ -57,7 +74,7 @@ done < "$OUTPUT_LABELS"
 TEND=$(date +%s)
 echo "done in $(($TEND-$TBEGIN)) seconds!"
 
-# generate output data
+# generate data association
 printf " |- processing images... 000000\b\b\b\b\b\b"
 > "$OUTPUT_ASSOCIATION"
 processed=0
@@ -102,3 +119,10 @@ TBEGIN=$(date +%s)
 TEND=$(date +%s)
 echo "done in $(($TEND-$TBEGIN)) seconds!"
 echo " |- associated data written to '$OUTPUT_ASSOCIATION'"
+
+# generate output data
+printf " '- generating training/testing data ... 000000\b\b\b\b\b\b"
+TBEGIN=$(date +%s)
+${0%/*}/aligner "$DATASET" "${OUTPUT_ASSOCIATION##*/}" "$OUTPUT_SIZE" || exit 1
+TEND=$(date +%s)
+echo "done in $(($TEND-$TBEGIN)) seconds!"

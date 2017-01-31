@@ -6,29 +6,19 @@ if [ "$#" -ne 1 ]; then
     exit 1
 fi
 
-# import dataset hierarchy
-if [ ! -f $1/info.sh ]; then
-	echo "[error] cannot proceed without the dataset info"
-	exit 1 
-fi
-
-source $1/info.sh || exit 1
-
-if [ "0" -ne "$?" ]; then
-	echo "[error] cannot load dataset info"
-	exit 1
-fi
-
-export DATASET="$1"
+export RED="\033[1;31m"
+export YLL="\033[1;33m"
+export WHT="\033[0;37m"
+export DATASET="${1%/}"
 
 # validate dataset info
-source ${0%/*}/evaluation_check.sh || exit 1
+source ${0%/*}/evaluation_check.sh
 
 # get number of images
-NIMG=$(cat $LABELS |wc -l)
+export NIMG=$(cat $LABELS |wc -l)
 
 # get number of labels
-NLBL=$(cat $LABELS |cut -d\  -f2|sort|uniq|wc -l)
+export NLBL=$(cat $LABELS |cut -d\  -f2|sort|uniq|wc -l)
 
 # generate a record counting the number of images for each label
 cat "$LABELS" |cut -d\  -f2|sort -n|uniq -c|awk '{printf "%d %d\n",$2,$1}' > "$COUNT"
@@ -40,7 +30,7 @@ export HMIN=${HMIN##*0}
 export HMAX=${HMAX##*0}
 
 # retrieve values and generate histogram plot
-H=($(${0%/*}/evaluation_histogram.sh)) || exit 1
+source ${0%/*}/evaluation_histogram.sh
 
 # show stats
 echo "[+] dataset statistics";
@@ -88,21 +78,14 @@ echo " '-number of labels with $n images: $nLBL ($pLBL of all labels) with $nIMG
 echo;
 
 # generate output data (file paths)
-OUTPUT_LABELS=$(printf $OUTPUT_LABELS $n);
-OUTPUT_IMAGES=$(printf $OUTPUT_IMAGES $n);
-OUTPUT_ASSOCIATION=$(printf $OUTPUT_ASSOCIATION $n);
+export OUTPUT_LABELS=$(printf $OUTPUT_LABELS $n);
+export OUTPUT_IMAGES=$(printf $OUTPUT_IMAGES $n);
+export OUTPUT_ASSOCIATION=$(printf $OUTPUT_ASSOCIATION $n);
 
 # generate output hierarchy
-${0%/*}/evaluation_data.sh || exit 1
-
-# generate output data
-printf " '- generating training/testing data ... 000000\b\b\b\b\b\b"
-TBEGIN=$(date +%s)
-${0%/*}/aligner "$DATASET" "${OUTPUT_ASSOCIATION##*/}" "$OUTPUT_SIZE" || exit 1
-TEND=$(date +%s)
-echo "done in $(($TEND-$TBEGIN)) seconds!"
+source ${0%/*}/evaluation_data.sh
 
 # delete extra data
-rm $COUNT
+rm "$COUNT" "$OUTPUT_LABELS" "$OUTPUT_IMAGES"
 
 exit 0

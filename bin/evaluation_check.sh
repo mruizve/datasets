@@ -4,9 +4,34 @@
 # for manual execution remember to define the following environment
 # variables:
 
-[ -z "$DATASET" ] && echo "(EE) $0: DATASET is not defined" >&2 && exit 1;
+echo "[+] dataset's check"
 
-echo "[+] dataset's 'info.sh' check"
+# validate the given dataset's path
+printf " |- dataset's path... "
+if [ -z "$DATASET" ]; then
+	echo -e "\r '- ${RED}dataset path${WHT}: '\$DATASET' empty or not defined" >&2
+	exit 1;
+fi
+
+if [ ! -d "$DATASET" ]; then
+	echo -e "\r '- ${RED}dataset path${WHT}: '$DATASET' not a valid directory" >&2
+	exit 1
+fi
+echo "done!"
+
+# import dataset hierarchy
+printf " |- loading 'info.sh'... "
+if [ ! -f $1/info.sh ]; then
+	echo -e "\r '- ${RED}loading 'info.sh'${WHT}: '$DATASET/info.sh' not a valid file" >&2
+	exit 1 
+else
+	source $1/info.sh
+	if [ "0" -ne "$?" ]; then
+		echo -e "\r '- ${RED}loading 'info.sh'${WHT}: unexpected error from '$DATASET/info.sh'" >&2
+		exit 1
+	fi
+fi
+echo "done"!
 
 # validate dataset file system hierarchy
 variables=("ANNOTATIONS" "INPUT" "OUTPUT")
@@ -17,13 +42,13 @@ printf " |- file system hierarchy... "
 for i in "${!directories[@]}"; do
 	# validate directory definition
 	if [ -z "${directories[$i]}" ]; then
-		echo "(EE) $0: missing definition of the ${values[$i]} folder" >&2
+		echo -e "\r '- ${RED}file system hierarchy${WHT}: missing definition of '\$${variables[$i]}'" >&2
 		exit 1
 	fi
 
 	# validate directory full path
 	if [ ! -d "$DATASET/${directories[$i]}" ]; then
-		echo "(EE) $0: ${values[$i]} folder does not exists" >&2
+		echo -e "\r '- ${RED}file system hierarchy${WHT}: '\$${variables[$i]}' value is not a valid directory" >&2
 		exit 1
 	fi
 
@@ -35,64 +60,69 @@ echo "done!"
 # identify the input and output data formats
 printf " |- data formats... "
 if [ -z "$INPUT_EXT" ]; then
-	echo "(WW) $0: assuming that the dataset is composed by .png images" >&2
 	export INPUT_EXT="png"
+	printf "input={${YLL}png${WHT},?x?}, "
+else
+	printf "input={$INPUT_EXT,?x?}, "
 fi
 
 if [ -z "$OUTPUT_EXT" ]; then
-	echo "(WW) $0: assuming that the dataset is composed by .png images" >&2
 	export OUTPUT_EXT="png"
+	printf "output={${YLL}png${WHT},"
+else
+	printf "output={$OUTPUT_EXT,"
 fi
 
 if [ -z "$OUTPUT_SIZE" ]; then
-	echo "(WW) $0: assuming that the output images size is 224x224" >&2
 	export OUTPUT_SIZE="224x224"
+	echo -e "${YLL}224x224${WHT}}$"
+else
+	echo "$OUTPUT_SIZE}"
 fi
-echo "input={$INPUT_EXT,?x?}, output={$OUTPUT_EXT,$OUTPUT_SIZE}."
 
 # verify annotations:
-printf " '- annotations... "
+variables=("LABELS" "BBOXES" "LANDMARKS")
+files=("$LABELS" "$BBOXES" "$LANDMARKS")
+values=("labels" "bounding boxes" "facial landmarks")
 
-# -- labels (mandatory)
-if [ -f "$DATASET/$ANNOTATIONS/$LABELS" ]; then
-	export LABELS="$DATASET/$ANNOTATIONS/$LABELS"
-else
-	echo "(EE) $0: missing data labels" >&2
-	exit 1
-fi
+printf " |- annotations... "
+for i in "${!files[@]}"; do
+	# validate annotation definition
+	if [ -z "${files[$i]}" ]; then
+		echo -e "\r '- ${RED}annotations${WHT}: missing definition of '\$${variables[$i]}'" >&2
+		exit 1
+	fi
 
-# -- faces bounding boxes (optional)
-if [ -f "$DATASET/$ANNOTATIONS/$BBOXES" ]; then
-	export BBOXES="$DATASET/$ANNOTATIONS/$BBOXES"
-else
-	echo "(EE) $0: missing faces bounding boxes" >&2
-	exit 1
-fi
+	# validate file path
+	if [ ! -f "$DATASET/$ANNOTATIONS/${files[$i]}" ]; then
+		echo -e "\r '- ${RED}annotations${WHT}: '\$${variables[$i]}' value is not a valid file" >&2
+		exit 1
+	fi
 
-# -- bounding boxes filter (optional)
+	# export annotations files with absolute path
+	export ${variables[$i]}="$DATASET/$ANNOTATIONS/${files[$i]}"
+done
+echo "done!"
+
+# bounding boxes and landmarks filters (optional)
+printf " |- annotation filters... "
 if [ -z "$BBOXES_FILTER" ]; then
 	export BBOXES_FILTER='{ printf "%s",$0; }'
-fi
-
-# -- facial landmarks (mandatory)
-if [ -f "$DATASET/$ANNOTATIONS/$LANDMARKS" ]; then
-	export LANDMARKS="$DATASET/$ANNOTATIONS/$LANDMARKS"
+	filters="default ${YLL}bboxes${WHT} and"
 else
-	echo "(EE) $0: missing facial landmarks" >&2
-	exit 1
+	filters="custom bounding boxes and"
 fi
 
-# -- landmarks filter (optional)
 if [ -z "$LANDMARKS_FILTER" ]; then
 	export LANDMARKS_FILTER='{ printf "%s",$0; }'
+	filters="$filters default ${YLL}facial landmarks${WHT}"
+else
+	filters="$filters custom facial landmarks"
 fi
-
-echo "done!"
-echo
+echo -e "using $filters filters\n"
 
 # I/O file streams
 export COUNT="$DATASET/count.txt"
 export OUTPUT_LABELS="$DATASET/%02d_list.txt"
 export OUTPUT_IMAGES="$DATASET/%02d_images.txt"
 export OUTPUT_ASSOCIATION="$DATASET/%02d_association.txt"
-

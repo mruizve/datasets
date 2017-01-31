@@ -4,17 +4,29 @@
 # for manual execution remember to define the following environment
 # variables:
 
-[ -z "$DATASET" ] && echo "(EE) $0: DATASET is not defined" >&2 && exit 1;
-[ -z "$COUNT" ] && echo "(EE) $0: COUNT is not defined" >&2 && exit 1;
-[ -z "$HMIN" ] && echo "(EE) $0: HMIN is not defined" >&2 && exit 1;
-[ -z "$HMAX" ] && echo "(EE) $0: HMAX is not defined" >&2 && exit 1;
+printf "[+] labels histogram... "
+
+# validate variables definitions
+if [ -z "$DATASET" ]; then
+	echo -e "\r[+] ${RED}labels histogram${WHT}: '\$DATASET' empty or not defined" >&2
+	exit 1
+fi
+
+if [ -z "$COUNT" ]; then
+	echo -e "\r[+] ${RED}labels histogram${WHT}: '\$COUNT' empty or not defined" >&2
+	exit 1
+fi
+
+if [ -z "$HMIN" -o -z "$HMAX" ]; then
+	echo -e "\r[+] ${RED}labels histogram${WHT}: either '\$HMIN' or '\$HMAX' empty or not defined" >&2
+	exit 1
+fi
 
 # generate histogram values
 H="";
 for i in $(seq "$HMIN" "$HMAX"); do
-	H=(${H[@]} "$(cat $COUNT|awk -v i=$i '{if($2==i) printf "%d\n",$1}'|wc -l)")
+	export H=(${H[@]} "$(cat $COUNT|awk -v i=$i '{if($2==i) printf "%d\n",$1}'|wc -l)")
 done
-echo ${H[@]}
 
 # temporally store histogram values on a csv file
 echo "0" > "$DATASET/histogram.csv"
@@ -52,4 +64,4 @@ EOF
 # delete temporal csv file
 rm "$DATASET/histogram.csv"
 
-exit 0
+echo -e "done!\n"
