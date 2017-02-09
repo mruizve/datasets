@@ -78,11 +78,11 @@ int main(int argc, char *argv[])
 		return -1;
 	}
 
-	// initialize output data container
-	output->initialize(input);
-
 	try
 	{
+		// initialize output data container
+		output->initialize(input);
+
 		// convert data values
 		for( int row=0; input->getRows()>row; row++ )
 		{
