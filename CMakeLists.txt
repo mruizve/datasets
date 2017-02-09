@@ -8,9 +8,10 @@ include_directories( "/usr/include/eigen3/" )
 find_package( OpenCV 3.1 REQUIRED )
 
 # MATLAB
-set( MATLAB_ROOT_DIR "/usr/local/MATLAB/R2016a/extern/" )
-include_directories( "${MATLAB_ROOT_DIR}/include" )
-link_directories( "${MATLAB_ROOT_DIR}/bin/glnxa64" )
+set( MATLAB_ROOT_DIR "/usr/local/MATLAB/R2016a/" )
+set( MATLAB_LIBS_DIR "${MATLAB_ROOT_DIR}/bin/glnxa64" )
+set( MATLAB_LIBS "${MATLAB_LIBS_DIR}/libmx.so" "${MATLAB_LIBS_DIR}/libmat.so" )
+include_directories( "${MATLAB_ROOT_DIR}/extern/include" )
 
 # project directories structure
 include_directories( "${CMAKE_CURRENT_SOURCE_DIR}/include" )
@@ -24,5 +25,10 @@ target_link_libraries( aligner ${OpenCV_LIBS} )
 
 file(GLOB Conversion_SRC src/convert/*.cpp)
 add_executable( converter ${Conversion_SRC} src/converter.cpp )
-target_link_libraries( converter ${OpenCV_LIBS} )
+target_link_libraries( converter ${OpenCV_LIBS} ${MATLAB_LIBS} )
+#target_compile_definitions( converter PRIVATE DEBUGGING="" )
+
+#file(GLOB Conversion_Old_SRC src/convert-old/*.cpp)
+#add_executable( converter-old ${Conversion_Old_SRC} src/converter-old.cpp )
+#target_link_libraries( converter-old ${OpenCV_LIBS} ${MATLAB_LIBS} )
 #target_compile_definitions( converter PRIVATE DEBUGGING="" )

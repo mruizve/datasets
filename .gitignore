@@ -1,4 +1,4 @@
-bin/aligner
-bin/converter
+bin/aligner*
+bin/converter*
 build/*
 lib/*

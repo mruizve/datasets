@@ -1,15 +1,17 @@
-#include<string.h>
+#include<string.h>        // strcasecmp()
+#include<string>
+#include<iostream>
 #include "conversions.h"
 
 const convert_t FORMATS[]=
 {
-	{ASCII,' ',"txt",NULL},   // ASCII values separated with spaces
-	{CSV,',',"csv",NULL},   // ASCII values separated with comma 
-	{TSV,'\t',"tsv",NULL},  // ASCII values separated with tabs 
-	{XML,0,"xml",NULL},     // OpenCV XML format
-	{DAT,0,"dat",NULL},     // tSNE .dat format
-	{MAT,0,"mat",NULL},     // MATLAB .mat format
-	{-1,-1,"",NULL}       // empty (returned on error)
+	{MY_ASCII,' ',"txt",NULL},  // ASCII values separated with spaces
+	{MY_ASCII,',',"csv",NULL},  // ASCII values separated with comma 
+	{MY_ASCII,'\t',"tsv",NULL}, // ASCII values separated with tabs 
+	{MY_XML,0,"xml",NULL},      // OpenCV XML format
+	{MY_DAT,0,"dat",NULL},      // tSNE .dat format
+	{MY_MAT,0,"mat",NULL},      // MATLAB .mat format
+	{-1,-1,"",NULL}          // empty (returned on error)
 };
 
 const convert_t convert_get_format(char *filename)
@@ -17,7 +19,7 @@ const convert_t convert_get_format(char *filename)
 	// validate input arguments
 	if( NULL==filename )
 	{
-		throw "filename cannot be NULL";
+		throw std::string("filename cannot be NULL");
 	}
 
 	char *dot=strrchr(filename,'.')+1;
