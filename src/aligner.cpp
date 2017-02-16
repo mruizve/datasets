@@ -1,11 +1,5 @@
-// C headers
-#include<errno.h>
-#include<fcntl.h>
 #include<stdio.h>
-#include<unistd.h>
-#include<sys/stat.h>
-
-// C++ headers
+#include<sys/stat.h>         // struct stat, stat(), S_ISDIR()
 #include<fstream>
 #include<string>
 #include<opencv2/opencv.hpp>
@@ -33,17 +27,14 @@ std::vector<cv::Point2f> getCoordinates(const std::string list, const int n, con
 
 int main(int argc, char *argv[])
 {
-	int err;
-	
 	// validate input arguments
 	if( 4!=argc )
 	{
-		fprintf(stderr,
+		std::cerr <<  "usage "<< argv[0] <<
 			"\nusage: %s dataset association dimension\n\n"
 			"   dataset: full path to the dataset root directory\n"
 			"   association: association file generated using the evaluation scripts\n"
-			"   dimension: dimensions of the output images (e.g., 224x224) \n",
-			argv[0]);
+			"   dimension: dimensions of the output images (e.g., 224x224)\n";
 
 		return -1;
 	}
@@ -51,10 +42,9 @@ int main(int argc, char *argv[])
 	// validate dataset directory
     struct stat stats;
     std::string dataset(argv[1]); 
-    err=stat(argv[1],&stats);
-    if( 0>err )
+    if( 0>stat(argv[1],&stats) || !S_ISDIR(stats.st_mode) )
     {
-		fprintf(stderr,"\n(EE) %s: invalid dataset directory\n(EE) >>> dataset: '%s'",argv[0],argv[1]);
+		std::cerr << "(EE) " << argv[0] << ": invalid dataset directory '" << argv[1] << "'\n";
 		return -1;
 	}
 
@@ -63,7 +53,7 @@ int main(int argc, char *argv[])
 	std::ifstream association(fullpath.c_str());
 	if( association.fail() )
 	{
-		fprintf(stderr,"\n(EE) %s: invalid association file\n(EE) >>> association: '%s'",argv[0],fullpath.c_str());
+		std::cerr << "(EE) " << argv[0] << ": cannot create the association file '" << fullpath.c_str() << "'\n";
 		return -1;
 	}
 
@@ -111,7 +101,7 @@ int main(int argc, char *argv[])
 		cv::Mat input=cv::imread(ipath);
 		if( NULL==input.data )
 		{
-			fprintf(stderr,"\n(EE) %s: cannot load image\n(EE) >>> image: '%s'",argv[0],ipath.c_str());
+			std::cerr << "(EE) " << argv[0] << ": cannot load the image '" << ipath.c_str() << "'\n";
 			return -1;
 		}
 

@@ -1,20 +1,31 @@
-#include "convert/mat.h"
+#include "io/mat.h"
 
-FileMAT::FileMAT(const char *filename, const char *varname, IOType type)
+FileMAT::FileMAT(const char *_filename, const char *_varname, IOType _type)
+:
+	IOFile(_filename,_varname,_type)
 {
-	// load supported formats
-	this->loadFormats();
+	// generate list of supported file formats
+	IOFileData mat={IOColMajor,0,"mat"};
+	IOFileDataArray formatlist;
+	formatlist.push_back(mat);
 
-	// prepare for data reading or writing
-	this->open(filename,varname,type);
+	// load data or prepare for writing
+	if( this->tryOpen(formatlist) )
+	{
+		this->open();
+	}
+	else
+	{
+		throw "'"+this->filename+"' is not a valid MATLAB file";
+	}
 }
 
 FileMAT::~FileMAT(void)
 {
-	if( Destination==this->type )
+	if( IODestination==this->type )
 	{
 		// write data to the output storage file
-		if( matPutVariable(this->file,this->name.c_str(),this->data) )
+		if( matPutVariable(this->file,this->varname.c_str(),this->data) )
 		{
 			throw std::string("unexpected error from matPutVariable()");
 		}
@@ -30,28 +41,29 @@ FileMAT::~FileMAT(void)
 	}
 }
 
-void FileMAT::open(const char *filename, const char *varname, IOType _type)
+void FileMAT::open(void)
 {
-	if( !this->tryOpen(filename) )
+	// validate varname
+	if( this->varname.empty() )
 	{
-		throw "'"+std::string(filename)+"' is not a valid XML file";
+		throw std::string("missing name of the data container or variable");
 	}
 
 	// open the MATLAB file
-	if( Source==_type )
+	if( IOSource==this->type )
 	{
-		this->file=matOpen(filename,"r");
+		this->file=matOpen(this->filename.c_str(),"r");
 		if( NULL==this->file )
 		{
-			throw "cannot open the input file '"+std::string(filename)+"'";
+			throw "cannot open the input file '"+this->filename+"'";
 		}
 
 		// read data format
-		this->data=matGetVariable(file,varname);
+		this->data=matGetVariable(this->file,this->varname.c_str());
 		if( NULL==this->data || 2!=mxGetNumberOfDimensions(this->data) || mxSINGLE_CLASS!=mxGetClassID(this->data) || mxIsComplex(this->data) )
 		{
 			// empty or invalid data (we expect a two dimensional real single precision -float- matrix)
-			throw "cannot read data from '"+std::string(filename)+"'";
+			throw "cannot read data from '"+this->filename+"'";
 		}
 
 		// get a pointer to the data buffer
@@ -67,21 +79,17 @@ void FileMAT::open(const char *filename, const char *varname, IOType _type)
 	}
 	else
 	{
-		this->file=matOpen(filename,"w");
+		this->file=matOpen(this->filename.c_str(),"w");
 		if( NULL==this->file )
 		{
-			throw "cannot open the output file '"+std::string(filename)+"'";
+			throw "cannot open the output file '"+this->filename+"'";
 		}
 	}
-
-	// store type and name
-	this->type=_type;
-	this->name=std::string(varname);
 }
 
-void FileMAT::initialize(const Format* source)
+void FileMAT::initialize(const IOFile* source)
 {
-	if( Destination==this->type )
+	if( IODestination==this->type )
 	{
 		// initialize data structure
 		this->data=mxCreateNumericMatrix(source->getRows(),source->getCols(),mxSINGLE_CLASS,mxREAL);
@@ -103,33 +111,31 @@ void FileMAT::initialize(const Format* source)
 	}
 	else
 	{
-		throw std::string("cannot set dimensions to a source file");
+		throw std::string("cannot initialize a source file");
 	}
 }
 
-float FileMAT::getValue(size_t _row, size_t _col)
+float FileMAT::getValue(size_t row, size_t col)
 {
-	if( _row>=this->rows || _col>=this->cols )
+	if( row>=this->rows || col>=this->cols )
 	{
 		throw std::string("requested element outside data bounds");
 	}
 
-	return *(this->raw+_col*this->rows+_row);
+	return *(this->raw+col*this->rows+row);
 }
 
-void FileMAT::setValue(size_t _row, size_t _col, float value)
+void FileMAT::setValue(size_t row, size_t col, float value)
 {
-	if( _row>=this->rows || _col>=this->cols )
+	if( row>=this->rows || col>=this->cols )
 	{
 		throw std::string("requested element outside data bounds");
 	}
 
-	*(this->raw+_col*this->rows+_row)=value;
+	*(this->raw+col*this->rows+row)=value;
 }
 
-void FileMAT::loadFormats(void)
+float* FileMAT::getDataPtr(void) const
 {
-	FormatData mat={0,"mat"};
-
-	this->formatlist.push_back(mat);
+	return this->raw;
 }

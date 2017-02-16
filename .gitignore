@@ -1,4 +1,5 @@
 bin/aligner*
 bin/converter*
+bin/dmatrix*
 build/*
 lib/*

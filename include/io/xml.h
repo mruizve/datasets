@@ -1,22 +1,21 @@
-#ifndef __FACEDATA_CONVERSIONS_XML_H__
-#define __FACEDATA_CONVERSIONS_XML_H__
+#ifndef __FACEDATA_IOFILE_XML_H__
+#define __FACEDATA_IOFILE_XML_H__
 
-#include "convert/format.h"
 #include<opencv2/opencv.hpp>
+#include "io/files.h"
 
-class FileXML: public Format
+class FileXML: public IOFile
 {
 	public:
 		FileXML(const char *filename, const char *varname, IOType type);
 		~FileXML(void);
 
-		void open(const char *filename, const char *varname, IOType type);
-		void initialize(const Format *source);
+		void open(void);
+		void initialize(const IOFile *source);
 
 		float getValue(size_t row, size_t col);
 		void setValue(size_t row, size_t col, float value);
-
-		void loadFormats(void);
+		float* getDataPtr(void) const;
 
 	protected:
 		cv::Mat data;
