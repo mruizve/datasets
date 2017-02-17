@@ -1,5 +1,6 @@
 #include<cuda.h>
 #include<iostream>
+#include<iomanip>
 #include "dmatrix.h"
 
 __global__ void dmCudaDistancesColMajor(float *matrix, size_t mdim, const float *features, size_t fcols, size_t frows, const int *indexes, const int *count)
@@ -142,7 +143,68 @@ __global__ void dmCudaDistancesRowMajor(float *matrix, size_t mdim, const float 
     #undef F
 }
 
-DMCudaArray* dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray *indexes, const DMCudaArray *count, size_t bsize)
+__global__ void dmCudaDMColMajor
+(
+	float *distances, const float *features, size_t fcols, size_t frows, const int *indexes, size_t xoffset, size_t yoffset, size_t xdim, size_t ydim
+)
+{
+	// compute pixel coordinates
+	const int x=blockDim.x*blockIdx.x+threadIdx.x;
+	const int y=blockDim.y*blockIdx.y+threadIdx.y;
+
+	#define F(i,j) features[(i)*frows+(j)]
+	#define D(i,j) distances[(j)*xdim+(i)]
+	if( xdim>x && ydim>y )
+	{
+		// compute features indexes
+		int xx=indexes[xoffset+x];
+		int yy=indexes[yoffset+y];
+		
+		// compute features distances
+		float d=0.0f;
+		for( int k=0; fcols>k; k++ )
+		{
+			d+=(F(k,xx)-F(k,yy))*(F(k,xx)-F(k,yy));
+		}
+
+		D(x,y)=sqrtf(d);
+	}
+	#undef D
+	#undef F
+}
+
+__global__ void dmCudaDMRowMajor
+(
+	float *distances, const float *features, size_t fcols, size_t frows, const int *indexes, size_t xoffset, size_t yoffset, size_t xdim, size_t ydim
+)
+{
+	// compute pixel coordinates
+	const int x=blockDim.x*blockIdx.x+threadIdx.x;
+	const int y=blockDim.y*blockIdx.y+threadIdx.y;
+
+	#define F(i,j) features[(j)*fcols+(i)]
+	#define D(i,j) distances[(j)*xdim+(i)]
+	if( xdim>x && ydim>y )
+	{
+		// compute features indexes
+		int xx=indexes[xoffset+x];
+		int yy=indexes[yoffset+y];
+		
+		// compute features distances
+		float d=0.0f;
+		for( int k=0; fcols>k; k++ )
+		{
+			d+=(F(k,xx)-F(k,yy))*(F(k,xx)-F(k,yy));
+		}
+
+		D(x,y)=sqrtf(d);
+	}
+	#undef D
+	#undef F
+}
+
+//DMCudaArray* dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray *indexes, const DMCudaArray *count, size_t bsize)
+cv::Mat dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray *indexes, const std::vector<int> offsets, size_t bsize)
 {
 	// validate input arguments
 	if( NULL==features )
@@ -160,15 +222,19 @@ DMCudaArray* dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray
 		throw std::string("features and indexes arrays should have the same number of elements");
 	}
 	
-	if( NULL==count || 1!=count->cols || indexes->rows<count->rows )
+	// if( NULL==count || 1!=count->cols || indexes->rows<count->rows )
+	// {
+		// throw std::string("invalid frequencies array");
+	// }
+	if( indexes->rows<(offsets.size()-1) )
 	{
-		throw std::string("invalid frequencies array");
+		throw std::string("invalid offsets array");
 	}
-
-	DMCudaArray *matrix=NULL;
+//	DMCudaArray *matrix=NULL;
 
 	try
 	{
+/*
 		// array initialization
 		matrix=new DMCudaArray;
 		matrix->cols=count->rows;
@@ -197,18 +263,95 @@ DMCudaArray* dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray
 				(float*)features->pointer,features->cols,features->rows,
 				(int*)indexes->pointer,(int*)count->pointer);
 		}
+*/
+		cv::Mat matrix(offsets.size()-1,offsets.size()-1,CV_32FC3);
 
+		for( size_t i=0; (offsets.size()-1)>i; i++ )
+		{
+			size_t xdim=offsets[i+1]-offsets[i];
+
+			for( size_t j=i; (offsets.size()-1)>j; j++ )
+			{
+				size_t ydim=offsets[j+1]-offsets[j];
+
+				float *d_distances;
+				size_t bytes=sizeof(float)*xdim*ydim;
+				cudaASSERT( cudaMalloc((void**)&d_distances,bytes) );
+
+				dim3 grid(1,1,1);
+				dim3 threads(bsize,bsize,1);
+				grid.x=(xdim/bsize)+((xdim%bsize)?1:0);
+				grid.y=(ydim/bsize)+((ydim%bsize)?1:0);
+
+				// computed distances between all features of the labels pair
+				if( IOColMajor==features->ordering )
+				{
+					dmCudaDMColMajor<<<grid,threads>>>(
+						d_distances,
+						(float*)features->pointer,features->cols,features->rows,
+						(int*)indexes->pointer,
+						offsets[i],offsets[j],xdim,ydim);
+				}
+				else
+				{
+					dmCudaDMRowMajor<<<grid,threads>>>(
+						d_distances,
+						(float*)features->pointer,features->cols,features->rows,
+						(int*)indexes->pointer,
+						offsets[i],offsets[j],xdim,ydim);
+				}
+
+				cudaASSERT( cudaPeekAtLastError() );
+
+				// retrieve distances
+				std::vector<float> h_distances(xdim*ydim);
+				cudaASSERT( cudaMemcpy(&h_distances[0],d_distances,bytes,cudaMemcpyDeviceToHost) );
+
+				// free memory resources
+				cudaASSERT( cudaFree(d_distances) );
+
+				// reduce distances
+				float d_mean=0.0f,d_max=0.0f,d_min=1e9;
+				for( size_t k=0; h_distances.size()>k; k++ )
+				{
+					d_mean+=h_distances.at(k);
+					d_max=std::max(d_max,h_distances.at(k));
+					d_min=std::min(d_min,h_distances.at(k));
+				}
+				d_mean=d_mean/h_distances.size();
+
+				// store distances
+				matrix.at<cv::Vec3f>(i,j)[0]=d_mean;
+				matrix.at<cv::Vec3f>(i,j)[1]=d_max;
+				matrix.at<cv::Vec3f>(i,j)[2]=d_min;
+
+				matrix.at<cv::Vec3f>(j,i)=matrix.at<cv::Vec3f>(i,j);
+			}
+
+			std::cout
+				<< std::setw(5) << std::setfill('0') << i << "/"
+				<< std::setw(5) << std::setfill('0') << offsets.size()-1 <<'\r'
+				<< std::flush;
+		}
+		std::cout << std::endl;
+
+		return matrix;
+/*
 		cudaASSERT( cudaPeekAtLastError() );
 		cudaASSERT( cudaDeviceSynchronize() );
+*/
 	}
 	catch( const std::string& error )
 	{
+/*
 		if( NULL!=matrix )
 		{
 			dmCudaFree(matrix);
 		}
+*/
 		throw "cannot generate the distance matrix array ("+error+")";
 	}
 
-	return matrix;
+//	return matrix;
+	return cv::Mat();
 }

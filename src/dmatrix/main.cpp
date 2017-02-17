@@ -58,15 +58,32 @@ int main(int argc, char *argv[])
 		DMCudaArray *dm_indexes=dmCudaSortArray(dm_labels,dm.bsize);
 
 		// count unique labels (identities)
-		DMCudaArray *dm_count=dmCudaCountKeys(dm_labels);
+		//DMCudaArray *dm_count=dmCudaCountKeys(dm_labels);
+		std::vector<int> count=dmCudaCountKeys(dm_labels);
 
 		// release labels array
 		dmCudaFree(dm_labels);
 
+		// compute indexes offsets
+		std::vector<int> offsets;
+		offsets.push_back(0);
+		for( size_t i=0; count.size()>i; i++ )
+		{
+			offsets.push_back(offsets.back()+count.at(i));
+		}
+/*
+for( size_t i=0; offsets.size()>i; i++ )
+{
+	std::cout << offsets[i] << ", ";
+}
+std::cout << offsets.size() << std::endl;
+std::cout << dm_indexes->rows << std::endl;
+*/
+
 		// generate distance matrix
 		std::cout << "here-1?\n";
 
-		DMCudaArray *dm_matrix=dmCudaDistanceMatrix(dm_features,dm_indexes,dm_count,dm.bsize);
+		cv::Mat matrix=dmCudaDistanceMatrix(dm_features,dm_indexes,offsets,dm.bsize);
 
 		std::cout << "here-2?\n";
 
@@ -80,11 +97,18 @@ int main(int argc, char *argv[])
 
 		std::cout << "here-4?\n";
 
-		dmCudaFree(dm_count);
+		cv::imwrite("dmatrix.png",matrix);
+		std::vector<cv::Mat> channels;
+		cv::split(matrix,channels);
+		std::cout << channels[0] << std::endl << std::endl;
+		std::cout << channels[1] << std::endl << std::endl;
+		std::cout << channels[2] << std::endl << std::endl;
 
-		std::cout << "here-5?\n";
+//		dmCudaFree(dm_count);
 
-		dmCudaFree(dm_matrix);
+//		std::cout << "here-5?\n";
+
+		// dmCudaFree(dm_matrix);
 	}
 	catch( std::string& error )
 	{

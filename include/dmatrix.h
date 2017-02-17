@@ -2,6 +2,7 @@
 #define __FACEDATA_DMATRIX_H__
 
 #include<string>
+#include<opencv2/opencv.hpp>
 #include "io/files.h"
 
 #define cudaASSERT(ans) \
@@ -40,12 +41,12 @@ DMCudaArray* dmCudaInitArray(const IOFile *file);
 DMCudaArray* dmCudaSortArray(const DMCudaArray *keys, size_t bsize);
 
 // unique keys frequency counting
-DMCudaArray* dmCudaCountKeys(const DMCudaArray* keys);
-//std::vector<int> dmCudaCountKeys(const DMCudaArray* keys);
+//DMCudaArray* dmCudaCountKeys(const DMCudaArray* keys);
+std::vector<int> dmCudaCountKeys(const DMCudaArray* keys);
 
 // distance matrix computation
-DMCudaArray* dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray *indexes, const DMCudaArray *count, size_t bsize);
-//DMCudaArray* dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray *indexes, const std::vector<int> count, size_t bsize);
+//DMCudaArray* dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray *indexes, const DMCudaArray *count, size_t bsize);
+cv::Mat dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray *indexes, const std::vector<int> count, size_t bsize);
 
 // free device arrays
 void dmCudaFree(DMCudaArray *array);

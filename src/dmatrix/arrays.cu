@@ -93,7 +93,8 @@ DMCudaArray* dmCudaSortArray(const DMCudaArray *keys, size_t bsize)
 	return indexes;
 }
 
-DMCudaArray* dmCudaCountKeys(const DMCudaArray *keys)
+//DMCudaArray* dmCudaCountKeys(const DMCudaArray *keys)
+std::vector<int> dmCudaCountKeys(const DMCudaArray *keys)
 {
 	// validate input arguments
 	if( NULL==keys || 1!=keys->cols )
@@ -117,6 +118,8 @@ DMCudaArray* dmCudaCountKeys(const DMCudaArray *keys)
 		}
 	}
 	frequencies.push_back(j);
+
+	return frequencies;
 /*
 for( int i=0; frequencies.size()>i; i++ )
 {
@@ -124,6 +127,7 @@ for( int i=0; frequencies.size()>i; i++ )
 }
 std::cout << frequencies.size() << std::endl;
 */
+/*
 	DMCudaArray *count=NULL;
 
 	try
@@ -147,6 +151,7 @@ std::cout << frequencies.size() << std::endl;
 	}
 
 	return count;
+*/ 
 }
 
 void dmCudaFree(DMCudaArray *array)

@@ -60,6 +60,8 @@ function D=dmatrix( labels, features )
 			D(i,j,1)=d_mean;
 			D(i,j,2)=d_max;
 			D(i,j,3)=d_min;
+
+			D(j,i,:)=D(i,j,:);
 		end
 	end
 	fprintf('\n');

@@ -1,15 +1,15 @@
 cmake_minimum_required( VERSION 2.8 )
 project( image-datasets )
 
+# CUDA
+find_package( CUDA )
+include( FindCUDA )
+
 # Eigen library
 include_directories( "/usr/include/eigen3/" )
 
 # OpenCV
 find_package( OpenCV 3.1 REQUIRED )
-
-# CUDA
-find_package( CUDA )
-include( FindCUDA )
 
 # MATLAB
 set( MATLAB_ROOT_DIR "/usr/local/MATLAB/R2016a/" )
