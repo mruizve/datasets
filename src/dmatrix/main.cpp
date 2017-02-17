@@ -12,7 +12,6 @@ int main(int argc, char *argv[])
 	}
 
 	int err=0;
-	float *dmatrix=NULL;
 	IOFile *features=NULL;
 	IOFile *labels=NULL;
 
@@ -58,8 +57,16 @@ int main(int argc, char *argv[])
 		DMCudaArray *dm_indexes=dmCudaSortArray(dm_labels,dm.bsize);
 
 		// count unique labels (identities)
-		//DMCudaArray *dm_count=dmCudaCountKeys(dm_labels);
 		std::vector<int> count=dmCudaCountKeys(dm_labels);
+
+		#ifdef DEBUGGING
+			std::cout << "count:" << std::endl;
+			for( size_t i=0; count.size()>i; i++ )
+			{
+				std::cout << count.at(i) << ", ";
+			}
+			std::cout << "size=" << count.size() << std::endl << std::endl;
+		#endif
 
 		// release labels array
 		dmCudaFree(dm_labels);
@@ -71,44 +78,34 @@ int main(int argc, char *argv[])
 		{
 			offsets.push_back(offsets.back()+count.at(i));
 		}
-/*
-for( size_t i=0; offsets.size()>i; i++ )
-{
-	std::cout << offsets[i] << ", ";
-}
-std::cout << offsets.size() << std::endl;
-std::cout << dm_indexes->rows << std::endl;
-*/
 
-		// generate distance matrix
-		std::cout << "here-1?\n";
+		#ifdef DEBUGGING
+			std::cout << "offsets:" << std::endl;
+			for( size_t i=0; offsets.size()>i; i++ )
+			{
+				std::cout << offsets[i] << ", ";
+			}
+			std::cout << "size=" << offsets.size() << std::endl << std::endl;
+		#endif
 
 		cv::Mat matrix=dmCudaDistanceMatrix(dm_features,dm_indexes,offsets,dm.bsize);
 
-		std::cout << "here-2?\n";
-
 		// release cuda arrays
 		dmCudaFree(dm_features);
-
-		std::cout << "here-3?\n";
-
 		dmCudaFree(dm_indexes);
 
+		// export the distance matrix
+		#ifdef DEBUGGING
+			std::vector<cv::Mat> channels;
+			cv::split(matrix,channels);
+			std::cout << std::endl << "distance matrix:" << std::endl;
+			std::cout << channels[0] << std::endl << std::endl;
+			std::cout << channels[1] << std::endl << std::endl;
+			std::cout << channels[2] << std::endl << std::endl;
+		#endif
 
-		std::cout << "here-4?\n";
-
+		cv::normalize(matrix,matrix,0,255,cv::NORM_MINMAX,CV_8UC3);
 		cv::imwrite("dmatrix.png",matrix);
-		std::vector<cv::Mat> channels;
-		cv::split(matrix,channels);
-		std::cout << channels[0] << std::endl << std::endl;
-		std::cout << channels[1] << std::endl << std::endl;
-		std::cout << channels[2] << std::endl << std::endl;
-
-//		dmCudaFree(dm_count);
-
-//		std::cout << "here-5?\n";
-
-		// dmCudaFree(dm_matrix);
 	}
 	catch( std::string& error )
 	{
@@ -119,11 +116,6 @@ std::cout << dm_indexes->rows << std::endl;
 	{
 		std::cerr << "(EE) " << argv[0] << ": " << "unexpected exception during data conversion" << std::endl;
 		err=-1;
-	}
-
-	if( NULL!=dmatrix )
-	{
-		delete dmatrix;
 	}
 
 	if( NULL!=features )

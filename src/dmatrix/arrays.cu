@@ -93,7 +93,6 @@ DMCudaArray* dmCudaSortArray(const DMCudaArray *keys, size_t bsize)
 	return indexes;
 }
 
-//DMCudaArray* dmCudaCountKeys(const DMCudaArray *keys)
 std::vector<int> dmCudaCountKeys(const DMCudaArray *keys)
 {
 	// validate input arguments
@@ -108,50 +107,21 @@ std::vector<int> dmCudaCountKeys(const DMCudaArray *keys)
 
 	// count unique keys and compute frequencies
 	int i=0,j=1;
-	std::vector<int> frequencies;
+	std::vector<int> count;
 	for( ; keys->rows-1>i; i++,j++ )
 	{
 		if( (aux[i+1]-aux[i]) )
 		{
-			frequencies.push_back(j);
+			count.push_back(j);
 			j=0;
 		}
 	}
-	frequencies.push_back(j);
+	count.push_back(j);
 
-	return frequencies;
-/*
-for( int i=0; frequencies.size()>i; i++ )
-{
-	std::cout << frequencies[i] << ", ";
-}
-std::cout << frequencies.size() << std::endl;
-*/
-/*
-	DMCudaArray *count=NULL;
-
-	try
-	{
-		count=new DMCudaArray;
-		count->cols=1;
-		count->rows=frequencies.size();
-		count->bytes=sizeof(int)*count->cols*count->rows;
-		count->ordering=IOColMajor;
-
-		cudaASSERT( cudaMalloc(&count->pointer,count->bytes) );
-		cudaASSERT( cudaMemcpy(count->pointer,&frequencies[0],count->bytes,cudaMemcpyHostToDevice) );
-	}
-	catch( const std::string& error )
-	{
-		if( NULL!=count )
-		{
-			dmCudaFree(count);
-		}
-		throw "cannot initialize keys frequencies array ("+error+")";
-	}
+	// delete temporary keys copy
+	delete aux;
 
 	return count;
-*/ 
 }
 
 void dmCudaFree(DMCudaArray *array)

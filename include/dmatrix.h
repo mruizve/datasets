@@ -41,11 +41,9 @@ DMCudaArray* dmCudaInitArray(const IOFile *file);
 DMCudaArray* dmCudaSortArray(const DMCudaArray *keys, size_t bsize);
 
 // unique keys frequency counting
-//DMCudaArray* dmCudaCountKeys(const DMCudaArray* keys);
 std::vector<int> dmCudaCountKeys(const DMCudaArray* keys);
 
 // distance matrix computation
-//DMCudaArray* dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray *indexes, const DMCudaArray *count, size_t bsize);
 cv::Mat dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray *indexes, const std::vector<int> count, size_t bsize);
 
 // free device arrays
