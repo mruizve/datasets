@@ -31,6 +31,7 @@ int main(int argc, char *argv[])
 			throw std::string("cannot identify the labels file format");
 		}
 
+		// validate data records
 		if( features->getRows()!=labels->getRows() )
 		{
 			throw std::string("number of features and labels elements mismatch");
@@ -88,6 +89,7 @@ int main(int argc, char *argv[])
 			std::cout << "size=" << offsets.size() << std::endl << std::endl;
 		#endif
 
+		// compute distance matrix
 		cv::Mat matrix=dmCudaDistanceMatrix(dm_features,dm_indexes,offsets,dm.bsize);
 
 		// release cuda arrays
@@ -95,17 +97,37 @@ int main(int argc, char *argv[])
 		dmCudaFree(dm_indexes);
 
 		// export the distance matrix
+		std::vector<cv::Mat> channels;
+		cv::split(matrix,channels);
+		cv::FileStorage file;
+		file.open("dmatrix.xml",cv::FileStorage::WRITE);
+		file << "mean" << channels[0];
+		file << "max" << channels[1];
+		file << "min" << channels[2];
+		file.release();
+
 		#ifdef DEBUGGING
-			std::vector<cv::Mat> channels;
-			cv::split(matrix,channels);
 			std::cout << std::endl << "distance matrix:" << std::endl;
 			std::cout << channels[0] << std::endl << std::endl;
 			std::cout << channels[1] << std::endl << std::endl;
 			std::cout << channels[2] << std::endl << std::endl;
 		#endif
 
-		cv::normalize(matrix,matrix,0,255,cv::NORM_MINMAX,CV_8UC3);
+		// convert to image
+		double min,max;
+		cv::minMaxLoc(matrix,&min,&max);
+		cv::convertScaleAbs(matrix,matrix,255.0/max,0);
 		cv::imwrite("dmatrix.png",matrix);
+
+		#ifdef DEBUGGING
+			std::cout << "before normalization: min=" << min << ", max=" << max << std::endl;
+			cv::minMaxLoc(matrix,&min,&max);
+			std::cout << "after normalization: min=" << min << ", max=" << max << std::endl;
+			cv::imshow("boh",matrix);
+			cv::waitKey(0);
+		#endif
+
+
 	}
 	catch( std::string& error )
 	{

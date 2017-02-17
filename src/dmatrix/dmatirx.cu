@@ -90,6 +90,7 @@ cv::Mat dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray *ind
 	{
 		// distance matrix initialization
 		cv::Mat matrix(offsets.size()-1,offsets.size()-1,CV_32FC3);
+		float *raw=(float*)matrix.data;
 
 		// computed distances between all features of the labels pair
 		// (remember that count[i]=offsets[i+1]-offsets[i])
@@ -149,11 +150,13 @@ cv::Mat dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray *ind
 				d_mean=d_mean/h_distances.size();
 
 				// store distances
-				matrix.at<cv::Vec3f>(i,j)[0]=d_mean;
-				matrix.at<cv::Vec3f>(i,j)[1]=d_max;
-				matrix.at<cv::Vec3f>(i,j)[2]=d_min;
+				raw[3*(i*matrix.cols+j)+0]=d_mean;
+				raw[3*(i*matrix.cols+j)+1]=d_max;
+				raw[3*(i*matrix.cols+j)+2]=d_min;
 
-				matrix.at<cv::Vec3f>(j,i)=matrix.at<cv::Vec3f>(i,j);
+				raw[3*(j*matrix.cols+i)+0]=d_mean;
+				raw[3*(j*matrix.cols+i)+1]=d_max;
+				raw[3*(j*matrix.cols+i)+2]=d_min;
 			}
 
 			std::cout
