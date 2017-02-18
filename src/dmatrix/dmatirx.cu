@@ -155,15 +155,15 @@ cv::Mat dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray *ind
 				d_var/=(h_distances.size()-1);
 
 				// store statistics
-				raw[3*(i*matrix.cols+j)+0]=d_mean;
-				raw[3*(i*matrix.cols+j)+1]=d_var;
-				raw[3*(i*matrix.cols+j)+2]=d_max;
-				raw[3*(i*matrix.cols+j)+3]=d_min;
+				raw[matrix.channels()*(i*matrix.cols+j)+0]=d_mean;
+				raw[matrix.channels()*(i*matrix.cols+j)+1]=d_var;
+				raw[matrix.channels()*(i*matrix.cols+j)+2]=d_max;
+				raw[matrix.channels()*(i*matrix.cols+j)+3]=d_min;
 
-				raw[3*(j*matrix.cols+i)+0]=d_mean;
-				raw[3*(j*matrix.cols+i)+1]=d_var;
-				raw[3*(j*matrix.cols+i)+2]=d_max;
-				raw[3*(j*matrix.cols+i)+3]=d_min;
+				raw[matrix.channels()*(j*matrix.cols+i)+0]=d_mean;
+				raw[matrix.channels()*(j*matrix.cols+i)+1]=d_var;
+				raw[matrix.channels()*(j*matrix.cols+i)+2]=d_max;
+				raw[matrix.channels()*(j*matrix.cols+i)+3]=d_min;
 			}
 
 			std::cout
