@@ -96,14 +96,15 @@ int main(int argc, char *argv[])
 		dmCudaFree(dm_features);
 		dmCudaFree(dm_indexes);
 
-		// export the distance matrix
+		// export the distances matrices
 		std::vector<cv::Mat> channels;
 		cv::split(matrix,channels);
 		cv::FileStorage file;
 		file.open("dmatrix.xml",cv::FileStorage::WRITE);
 		file << "mean" << channels[0];
-		file << "max" << channels[1];
-		file << "min" << channels[2];
+		file << "var" << channels[1];
+		file << "max" << channels[2];
+		file << "min" << channels[3];
 		file.release();
 
 		#ifdef DEBUGGING
@@ -111,9 +112,10 @@ int main(int argc, char *argv[])
 			std::cout << channels[0] << std::endl << std::endl;
 			std::cout << channels[1] << std::endl << std::endl;
 			std::cout << channels[2] << std::endl << std::endl;
+			std::cout << channels[3] << std::endl << std::endl;
 		#endif
 
-		// convert to image
+		// convert to images
 		double min,max;
 		cv::minMaxLoc(channels[0],&min,&max);
 		cv::convertScaleAbs(channels[0],channels[0],255.0/max,0);
@@ -121,25 +123,15 @@ int main(int argc, char *argv[])
 
 		cv::minMaxLoc(channels[1],&min,&max);
 		cv::convertScaleAbs(channels[1],channels[1],255.0/max,0);
-		cv::imwrite("dmatrix-max.png",channels[1]);
+		cv::imwrite("dmatrix-var.png",channels[1]);
 
 		cv::minMaxLoc(channels[2],&min,&max);
 		cv::convertScaleAbs(channels[2],channels[2],255.0/max,0);
-		cv::imwrite("dmatrix-min.png",channels[2]);
+		cv::imwrite("dmatrix-max.png",channels[2]);
 
-		cv::minMaxLoc(matrix,&min,&max);
-		cv::convertScaleAbs(matrix,matrix,255.0/max,0);
-		cv::imwrite("dmatrix.png",matrix);
-
-		#ifdef DEBUGGING
-			std::cout << "before normalization: min=" << min << ", max=" << max << std::endl;
-			cv::minMaxLoc(matrix,&min,&max);
-			std::cout << "after normalization: min=" << min << ", max=" << max << std::endl;
-			cv::imshow("boh",matrix);
-			cv::waitKey(0);
-		#endif
-
-
+		cv::minMaxLoc(channels[3],&min,&max);
+		cv::convertScaleAbs(channels[3],channels[3],255.0/max,0);
+		cv::imwrite("dmatrix-min.png",channels[3]);
 	}
 	catch( std::string& error )
 	{

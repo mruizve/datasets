@@ -89,7 +89,7 @@ cv::Mat dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray *ind
 	try
 	{
 		// distance matrix initialization
-		cv::Mat matrix(offsets.size()-1,offsets.size()-1,CV_32FC3);
+		cv::Mat matrix(offsets.size()-1,offsets.size()-1,CV_32FC4);
 		float *raw=(float*)matrix.data;
 
 		// computed distances between all features of the labels pair
@@ -139,24 +139,31 @@ cv::Mat dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray *ind
 				// free memory resources
 				cudaASSERT( cudaFree(d_distances) );
 
-				// reduce distances
-				float d_mean=0.0f,d_max=0.0f,d_min=1e9;
+				// compute distances statistics
+				float d_mean=0.0f,d_var=0.0f,d_max=0.0f,d_min=1e9;
 				for( size_t k=0; h_distances.size()>k; k++ )
 				{
 					d_mean+=h_distances.at(k);
 					d_max=std::max(d_max,h_distances.at(k));
 					d_min=std::min(d_min,h_distances.at(k));
 				}
-				d_mean=d_mean/h_distances.size();
+				d_mean/=h_distances.size();
+				for( size_t k=0; h_distances.size()>k; k++ )
+				{
+					d_var+=(h_distances.at(k)-d_mean)*(h_distances.at(k)-d_mean);
+				}
+				d_var/=(h_distances.size()-1);
 
-				// store distances
+				// store statistics
 				raw[3*(i*matrix.cols+j)+0]=d_mean;
-				raw[3*(i*matrix.cols+j)+1]=d_max;
-				raw[3*(i*matrix.cols+j)+2]=d_min;
+				raw[3*(i*matrix.cols+j)+1]=d_var;
+				raw[3*(i*matrix.cols+j)+2]=d_max;
+				raw[3*(i*matrix.cols+j)+3]=d_min;
 
 				raw[3*(j*matrix.cols+i)+0]=d_mean;
-				raw[3*(j*matrix.cols+i)+1]=d_max;
-				raw[3*(j*matrix.cols+i)+2]=d_min;
+				raw[3*(j*matrix.cols+i)+1]=d_var;
+				raw[3*(j*matrix.cols+i)+2]=d_max;
+				raw[3*(j*matrix.cols+i)+3]=d_min;
 			}
 
 			std::cout
