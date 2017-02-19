@@ -5,8 +5,8 @@
 
 static void usage(const char *argv0)
 {
-	std::cerr <<  "usage "<< argv0 <<
-		": [options] features labels\n\n"
+	std::cerr <<  "usage: "<< argv0 <<
+		" [options] features labels\n\n"
 		"   features: path of the features file\n"
 		"     labels: path of the labels file\n\n"
 		"available options:\n"

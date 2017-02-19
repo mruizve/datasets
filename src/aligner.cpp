@@ -30,11 +30,11 @@ int main(int argc, char *argv[])
 	// validate input arguments
 	if( 4!=argc )
 	{
-		std::cerr <<  "usage "<< argv[0] <<
-			"\nusage: %s dataset association dimension\n\n"
-			"   dataset: full path to the dataset root directory\n"
-			"   association: association file generated using the evaluation scripts\n"
-			"   dimension: dimensions of the output images (e.g., 224x224)\n";
+		std::cerr <<  "usage: "<< argv[0] <<
+			" dataset association dimensions\n\n"
+			"       dataset: full path to the dataset root directory\n"
+			"   association: output association file\n"
+			"    dimensions: dimensions of the output images (e.g., 224x224)\n\n";
 
 		return -1;
 	}

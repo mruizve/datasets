@@ -116,21 +116,22 @@ int main(int argc, char *argv[])
 		#endif
 
 		// convert to images
-		double min,max;
-		cv::minMaxLoc(channels[0],&min,&max);
-		cv::convertScaleAbs(channels[0],channels[0],255.0/max,0);
+		// (it is assumed that min equals zero)
+		double min,max,scale;
+		cv::minMaxLoc(channels[0],&min,&max); scale=255.0/(max-min);
+		cv::convertScaleAbs(channels[0],channels[0],scale,-scale*min);
 		cv::imwrite("dmatrix-mean.png",channels[0]);
 
-		cv::minMaxLoc(channels[1],&min,&max);
-		cv::convertScaleAbs(channels[1],channels[1],255.0/max,0);
+		cv::minMaxLoc(channels[1],&min,&max); scale=255.0/(max-min);
+		cv::convertScaleAbs(channels[1],channels[1],scale,-scale*min);
 		cv::imwrite("dmatrix-var.png",channels[1]);
 
-		cv::minMaxLoc(channels[2],&min,&max);
-		cv::convertScaleAbs(channels[2],channels[2],255.0/max,0);
+		cv::minMaxLoc(channels[2],&min,&max); scale=255.0/(max-min);
+		cv::convertScaleAbs(channels[2],channels[2],scale,-scale*min);
 		cv::imwrite("dmatrix-max.png",channels[2]);
 
-		cv::minMaxLoc(channels[3],&min,&max);
-		cv::convertScaleAbs(channels[3],channels[3],255.0/max,0);
+		cv::minMaxLoc(channels[3],&min,&max); scale=255.0/(max-min);
+		cv::convertScaleAbs(channels[3],channels[3],scale,-scale*min);
 		cv::imwrite("dmatrix-min.png",channels[3]);
 	}
 	catch( std::string& error )

@@ -7,8 +7,8 @@ int main(int argc, char *argv[])
 	// validate input arguments
 	if( 3!=argc && 4!=argc )
 	{
-		std::cerr <<  "usage "<< argv[0] <<
-			": input output [varname]\n\n"
+		std::cerr <<  "usage: "<< argv[0] <<
+			" input output [varname]\n\n"
 			"    input: path of the source file\n"
  			"   output: path of the destination file\n"
 			"  varname: name of the data container\n\n"

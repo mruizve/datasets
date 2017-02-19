@@ -1,11 +1,12 @@
 #include<getopt.h>
+#include<cstring>
 #include<iostream>
 #include "io/files.h"
 
 void usage(const char *argv0)
 {
-	std::cerr <<  "usage "<< argv0 <<
-		": [options] input output\n\n"
+	std::cerr <<  "usage: "<< argv0 <<
+		" [options] input output\n\n"
 		"    input: path of the source file\n"
 		"   output: path of the destination file\n\n"
 		"available options:\n"
@@ -35,8 +36,8 @@ int main(int argc, char *argv[])
 	};
 
 	int idx=0;
-	int c=getopt_long(argc,argv,"i:o:",options,&idx);
-	for( ; -1!=c; c=getopt_long(argc,argv,"i:o:",options,&idx) )
+	int c=getopt_long(argc,argv,"i:o:v:",options,&idx);
+	for( ; -1!=c; c=getopt_long(argc,argv,"i:o:v:",options,&idx) )
 	{
 		switch( c )
 		{
@@ -76,14 +77,14 @@ int main(int argc, char *argv[])
 	try
 	{
 		// open the input file and prepare for reading
-		IOFile *input=FileOpen(argv[optind],iname.c_str(),IOSource);
+		input=FileOpen(argv[optind],iname.c_str(),IOSource);
 		if( NULL==input )
 		{
 			throw std::string("cannot identify the input file format");
 		}
 		
 		// open the output file and prepare for writing
-		IOFile *output=FileOpen(argv[optind+1],oname.c_str(),IODestination);
+		output=FileOpen(argv[optind+1],oname.c_str(),IODestination);
 		if( NULL==output )
 		{
 			throw std::string("cannot identify the output file format");
@@ -93,12 +94,19 @@ int main(int argc, char *argv[])
 		output->initialize(input);
 
 		// convert data values
-		for( int row=0; input->getRows()>row; row++ )
+		if( input->getMajorOrdering()==output->getMajorOrdering() )
 		{
-			for( int col=0; input->getCols()>col; col++ )
+			std::memcpy(output->getDataPtr(),input->getDataPtr(),input->getBytes());
+		}
+		else
+		{
+			for( int row=0; input->getRows()>row; row++ )
 			{
-				float value=input->getValue(row,col);
-				output->setValue(row,col,value);
+				for( int col=0; input->getCols()>col; col++ )
+				{
+					float value=input->getValue(row,col);
+					output->setValue(row,col,value);
+				}
 			}
 		}
 	}
