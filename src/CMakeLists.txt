@@ -11,6 +11,10 @@ add_executable( converter converter.cpp )
 target_link_libraries( converter io )
 #target_compile_definitions( converter PRIVATE DEBUGGING="" )
 
+add_executable( visualizer visualizer.cpp )
+target_link_libraries( visualizer io )
+#target_compile_definitions( visualizer PRIVATE DEBUGGING="" )
+
 #file( GLOB Converter_Old_SRC converter-old/*.cpp )
 #add_executable( converter-old ${Converter_Old_SRC} )
 #target_link_libraries( converter-old ${OpenCV_LIBS} ${MATLAB_LIBS} )
