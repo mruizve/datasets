@@ -18,6 +18,10 @@ FileXML::FileXML(const char *_filename, const char *_varname, IOType _type)
 	{
 		throw "'"+this->filename+"' is not a valid XML file";
 	}
+
+	#ifdef DEBUGGING
+		std::cout << "(DD) created " << typeid(this).name() << std::endl;
+	#endif
 }
 
 FileXML::~FileXML(void)
@@ -30,6 +34,10 @@ FileXML::~FileXML(void)
 
 	// close the XML file
     this->file.release();
+
+	#ifdef DEBUGGING
+		std::cout << "(DD) deleted " << typeid(this).name() << std::endl;
+	#endif
 }
 
 void FileXML::open(void)
@@ -70,9 +78,10 @@ void FileXML::open(void)
 			throw "cannot read data from '"+this->filename+"'";
 		}
 
-		// get number of columns and rows
+		// get number of columns, rows and bytes
 		this->cols=this->data.cols;
 		this->rows=this->data.rows;
+		this->bytes=sizeof(float)*this->cols*this->rows;
 	}
 }
 
@@ -83,9 +92,10 @@ void FileXML::initialize(const IOFile* source)
 		// allocate data
 		this->data=cv::Mat(source->getRows(),source->getCols(),CV_32FC1);
 
-		// get number of columns and rows
+		// get number of columns, rows and bytes
 		this->cols=this->data.cols;
 		this->rows=this->data.rows;
+		this->bytes=sizeof(float)*this->cols*this->rows;
 	}
 	else
 	{

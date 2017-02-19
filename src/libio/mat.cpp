@@ -18,6 +18,10 @@ FileMAT::FileMAT(const char *_filename, const char *_varname, IOType _type)
 	{
 		throw "'"+this->filename+"' is not a valid MATLAB file";
 	}
+
+	#ifdef DEBUGGING
+		std::cout << "(DD) created " << typeid(this).name() << std::endl;
+	#endif
 }
 
 FileMAT::~FileMAT(void)
@@ -39,6 +43,10 @@ FileMAT::~FileMAT(void)
 	{
 		throw std::string("unexpected error from matClose()");
 	}
+
+	#ifdef DEBUGGING
+		std::cout << "(DD) deleted " << typeid(this).name() << std::endl;
+	#endif
 }
 
 void FileMAT::open(void)
@@ -73,9 +81,10 @@ void FileMAT::open(void)
 			throw std::string("unexpected error from mxGetData()'");
 		}
 
-		// get number of columns and rows
+		// get number of columns, rows and bytes
 		this->cols=mxGetN(this->data);
 		this->rows=mxGetM(this->data);
+		this->bytes=sizeof(float)*this->cols*this->rows;
 	}
 	else
 	{
@@ -105,9 +114,10 @@ void FileMAT::initialize(const IOFile* source)
 			throw std::string("unexpected error from mxGetData()'");
 		}
 
-		// get number of columns and rows
+		// get number of columns, rows and bytes
 		this->cols=mxGetN(this->data);
 		this->rows=mxGetM(this->data);
+		this->bytes=sizeof(float)*this->cols*this->rows;
 	}
 	else
 	{

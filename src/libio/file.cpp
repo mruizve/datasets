@@ -26,10 +26,17 @@ IOFile::IOFile(const char *_filename, const char *_varname, IOType _type)
 	this->varname=(NULL!=_varname)? std::string(_varname) : std::string() ;
 
 	this->type=_type;
+
+	#ifdef DEBUGGING
+		std::cout << "(DD) created " << typeid(this).name() << std::endl;
+	#endif
 }
 
 IOFile::~IOFile(void)
 {
+	#ifdef DEBUGGING
+		std::cout << "(DD) deleted " << typeid(this).name() << std::endl;
+	#endif
 }
 
 size_t IOFile::getCols(void) const
@@ -40,6 +47,11 @@ size_t IOFile::getCols(void) const
 size_t IOFile::getRows(void) const
 {
 	return this->rows;
+}
+
+size_t IOFile::getBytes(void) const
+{
+	return this->bytes;
 }
 
 IOMajor IOFile::getMajorOrdering(void) const

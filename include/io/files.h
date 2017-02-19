@@ -5,6 +5,11 @@
 #include<string>
 #include<vector>
 
+#ifdef DEBUGGING
+	#include<iostream>
+	#include<typeinfo>
+#endif
+
 typedef enum
 {
 	IOColMajor=0,
@@ -40,6 +45,7 @@ class IOFile
 		// data abstraction
 		size_t getCols(void) const;
 		size_t getRows(void) const;
+		size_t getBytes(void) const;
 		IOMajor getMajorOrdering(void) const;
 
 		virtual float getValue(size_t row, size_t col)=0;
@@ -54,6 +60,7 @@ class IOFile
 		int ordering;
 		size_t cols;
 		size_t rows;
+		size_t bytes;
 		IOType type;
 		std::string varname;
 		std::string filename;

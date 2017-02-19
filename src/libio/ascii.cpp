@@ -79,6 +79,10 @@ FileASCII::FileASCII(const char *_filename, const char *_varname, IOType _type)
 	{
 		throw "'"+this->filename+"' is not a valid ASCII file";
 	}
+
+	#ifdef DEBUGGING
+		std::cout << "(DD) created " << typeid(this).name() << std::endl;
+	#endif
 }
 
 
@@ -107,6 +111,10 @@ FileASCII::~FileASCII(void)
 
 	// release memory resources
 	delete this->data;
+
+	#ifdef DEBUGGING
+		std::cout << "(DD) deleted " << typeid(this).name() << std::endl;
+	#endif
 }
 
 void FileASCII::open(void)
@@ -127,9 +135,10 @@ void FileASCII::open(void)
 
 	if( IOSource==this->type )
 	{
-		// count number of columns and rows
+		// count number of columns, rows and bytes
 		this->cols=convert_count_cols(this->file,this->format.delimiter);
 		this->rows=convert_count_rows(this->file);
+		this->bytes=sizeof(float)*this->cols*this->rows;
 
 		// allocate memory resources
 		this->data=new float[this->cols*this->rows];
@@ -152,9 +161,10 @@ void FileASCII::initialize(const IOFile *source)
 {
 	if( IODestination==this->type )
 	{
-		// get number of columns and rows
+		// get number of columns, rows and bytes
 		this->cols=source->getCols();
 		this->rows=source->getRows();
+		this->bytes=sizeof(float)*this->cols*this->rows;
 
 		// allocate memory resources
 		this->data=new float[this->cols*this->rows];
