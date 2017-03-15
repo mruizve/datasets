@@ -23,12 +23,12 @@ if [ -z "$INPUT_EXT" -o -z "$OUTPUT_EXT" -o -z "$OUTPUT_SIZE" ]; then
 	exit 1
 fi
 
-if [ -z "$LABELS" -o -z "$BBOXES" -o -z "$LANDMARKS" -o -z "$COUNT" ]; then
+if [ -z "$LABELS" -o -z "$BBOXES" -o -z "$LANDMARKS" -o -z "$ATTRIBUTES" -o -z "$COUNT" ]; then
 	echo -e "\r[+] ${RED}check variables${WHT}: missing some annotations files" >&2
 	exit 1
 fi
 
-if [ -z "$BBOXES_FILTER" -o -z "$LANDMARKS_FILTER" ]; then
+if [ -z "$BBOXES_FILTER" -o -z "$LANDMARKS_FILTER" -o -z "$ATTRIBUTES_FILTER" ]; then
 	echo -e "\r[+] ${RED}check variables${WHT}: missing some annotations filters" >&2
 	exit 1
 fi
@@ -80,20 +80,21 @@ printf " |- processing images... 000000\b\b\b\b\b\b"
 processed=0
 TBEGIN=$(date +%s)
 (
-	read -r bboxes <&3 && read -r landmarks <&4 # discard first lines
-	read -r bboxes <&3 && read -r landmarks <&4 # discard second lines
+	read -r bboxes <&3 && read -r landmarks <&4 && read -r attributes <&5 # discard first lines
+	read -r bboxes <&3 && read -r landmarks <&4 && read -r attributes <&5 # discard second lines
 
 	# for each labeled image
 	while read -r labels; do
 		# get corresponding bounding boxes and landmarks
 		while [ ! "${bboxes%.*}" = "${labels%.*}" ]; do
-			read -r bboxes <&3 && read -r landmarks <&4;
+			read -r bboxes <&3 && read -r landmarks <&4 && read -r attributes <&5;
 		done
 
 		# convert strings to arrays
 		labels=($(echo $labels|tr '\r' ' '))
 		bboxes=($(echo $bboxes|tr '\r' ' '))
 		landmarks=($(echo $landmarks|tr '\r' ' '))
+		attributes=($(echo $attributes|tr '\r' ' '))
 
 		# prepare output data
 		label="${labels[1]}"
@@ -101,21 +102,16 @@ TBEGIN=$(date +%s)
 		input="$INPUT/${labels[0]%.*}.$INPUT_EXT"
 		bboxes="$(echo ${bboxes[@]}|awk "$BBOXES_FILTER")"
 		landmarks="$(echo "${landmarks[@]}"|awk "$LANDMARKS_FILTER")"
+		attributes="$(echo "${attributes[@]}"|awk "$ATTRIBUTES_FILTER")"
 
 		# copy data association with bounding boxes and landmarks
-		echo "$output $label $input $bboxes $landmarks" >> "$OUTPUT_ASSOCIATION";
-
-		# add task to the list
-		# echo ${0%/*}/aligner "$input" "$bboxes" "$landmarks" "$OUTPUT_SIZE" "$output" 2>/dev/null
-
-		### create symbolic link inside data folder
-		###ln -fs "../../$INPUT/${labels[0]%.*}.$INPUT_EXT" "${output%.*}.$INPUT_EXT"
+		echo "$output $label $input $bboxes $landmarks $attributes" >> "$OUTPUT_ASSOCIATION";
 
 		# increase image counter
 		((processed+=1))
 		printf "%06d\b\b\b\b\b\b" "$processed"
 	done
-) <"$OUTPUT_IMAGES" 3<"$BBOXES" 4<"$LANDMARKS"
+) <"$OUTPUT_IMAGES" 3<"$BBOXES" 4<"$LANDMARKS" 5<"$ATTRIBUTES"
 TEND=$(date +%s)
 echo "done in $(($TEND-$TBEGIN)) seconds!"
 echo " |- associated data written to '$OUTPUT_ASSOCIATION'"

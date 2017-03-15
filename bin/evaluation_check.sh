@@ -81,9 +81,9 @@ else
 fi
 
 # verify annotations:
-variables=("LABELS" "BBOXES" "LANDMARKS")
-files=("$LABELS" "$BBOXES" "$LANDMARKS")
-values=("labels" "bounding boxes" "facial landmarks")
+variables=("LABELS" "BBOXES" "LANDMARKS" "ATTRIBUTES")
+files=("$LABELS" "$BBOXES" "$LANDMARKS" "$ATTRIBUTES")
+values=("labels" "bounding boxes" "facial landmarks" "face attributes")
 
 printf " |- annotations... "
 for i in "${!files[@]}"; do
@@ -104,21 +104,29 @@ for i in "${!files[@]}"; do
 done
 echo "done!"
 
-# bounding boxes and landmarks filters (optional)
-printf " |- annotation filters... "
+# bounding boxes, landmarks filters and attributes (optional)
+printf " '- annotation filters... "
 if [ -z "$BBOXES_FILTER" ]; then
 	export BBOXES_FILTER='{ printf "%s",$0; }'
-	filters="default ${YLL}bboxes${WHT} and"
+	filters="default ${YLL}bboxes${WHT},"
 else
-	filters="custom bounding boxes and"
+	filters="custom bounding boxes,"
 fi
 
 if [ -z "$LANDMARKS_FILTER" ]; then
 	export LANDMARKS_FILTER='{ printf "%s",$0; }'
-	filters="$filters default ${YLL}facial landmarks${WHT}"
+	filters="$filters default ${YLL}facial landmarks${WHT} and"
 else
-	filters="$filters custom facial landmarks"
+	filters="$filters custom facial landmarks and"
 fi
+
+if [ -z "$ATTRIBUTES_FILTER" ]; then
+	export ATTRIBUTES_FILTER='{ printf "%s",$0; }'
+	filters="$filters default ${YLL}facial attributes${WHT}"
+else
+	filters="$filters custom facial attributes"
+fi
+
 echo -e "using $filters filters\n"
 
 # I/O file streams
