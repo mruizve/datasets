@@ -11,7 +11,7 @@ function D=dmatrix( labels, features )
 
 	% count number of occurrences of each label
 	uL=unique(L);
-	count=histc(L(:),uL);
+	[count,~]=histcounts(L(:),uL);
 	indexes=[0; cumsum(count)];
 
 	% initialize the output matrix

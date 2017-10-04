@@ -4,7 +4,7 @@
 #include<thrust/sort.h>
 #include "dmatrix.h"
 
-DMCudaArray* dmCudaInitArray(const IOFile *file)
+DMArray* dmInitArray(const IOFile *file)
 {
 	// validate input arguments
 	if( NULL==file )
@@ -12,11 +12,11 @@ DMCudaArray* dmCudaInitArray(const IOFile *file)
 		throw std::string("invalid IOFile object");
 	}
 
-	DMCudaArray *array=NULL;
+	DMArray *array=NULL;
 
 	try
 	{
-		array=new DMCudaArray;
+		array=new DMArray;
 		array->cols=file->getCols();
 		array->rows=file->getRows();
 		array->bytes=sizeof(float)*array->cols*array->rows;
@@ -29,7 +29,7 @@ DMCudaArray* dmCudaInitArray(const IOFile *file)
 	{
 		if( NULL!=array )
 		{
-			dmCudaFree(array);
+			dmFree(array);
 		}
 		throw "cannot initialize the CUDA array ("+error+")";
 	}
@@ -49,7 +49,7 @@ __global__ void dmCudaInitIndexes(int *indexes, size_t numel)
     }
 }
 
-DMCudaArray* dmCudaSortArray(const DMCudaArray *keys, size_t bsize)
+DMArray* dmSortArray(const DMArray *keys, size_t bsize)
 {
 	// validate input arguments
 	if( NULL==keys || 1!=keys->cols )
@@ -57,11 +57,11 @@ DMCudaArray* dmCudaSortArray(const DMCudaArray *keys, size_t bsize)
 		throw std::string("invalid keys array");
 	}
 
-	DMCudaArray *indexes=NULL;
+	DMArray *indexes=NULL;
 
 	try
 	{
-		indexes=new DMCudaArray;
+		indexes=new DMArray;
 		indexes->cols=1;
 		indexes->rows=keys->rows;
 		indexes->bytes=sizeof(int)*indexes->cols*indexes->rows;
@@ -85,7 +85,7 @@ DMCudaArray* dmCudaSortArray(const DMCudaArray *keys, size_t bsize)
 	{
 		if( NULL!=indexes )
 		{
-			dmCudaFree(indexes);
+			dmFree(indexes);
 		}
 		throw "cannot initialize the indexes array ("+error+")";
 	}
@@ -93,7 +93,7 @@ DMCudaArray* dmCudaSortArray(const DMCudaArray *keys, size_t bsize)
 	return indexes;
 }
 
-std::vector<int> dmCudaCountKeys(const DMCudaArray *keys)
+std::vector<int> dmCountUniqueKeys(const DMArray *keys)
 {
 	// validate input arguments
 	if( NULL==keys || 1!=keys->cols )
@@ -124,7 +124,7 @@ std::vector<int> dmCudaCountKeys(const DMCudaArray *keys)
 	return count;
 }
 
-void dmCudaFree(DMCudaArray *array)
+void dmFree(DMArray *array)
 {
 	if( NULL!=array )
 	{

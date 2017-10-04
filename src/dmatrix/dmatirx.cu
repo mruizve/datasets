@@ -63,7 +63,7 @@ __global__ void dmCudaDistancesRowMajor
 	#undef F
 }
 
-cv::Mat dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray *indexes, const std::vector<int> offsets, size_t bsize)
+cv::Mat dmDistanceMatrix(const DMArray *features, const DMArray *indexes, const std::vector<int> offsets, size_t bsize)
 {
 	// validate input arguments
 	if( NULL==features )

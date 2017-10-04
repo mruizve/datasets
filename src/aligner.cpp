@@ -323,7 +323,7 @@ int main(int argc, char *argv[])
 		cv::imwrite(opath,output);
 
 		processed++;
-		printf("%06d\b\b\b\b\b\b\n",processed);
+		printf("%06d\b\b\b\b\b\b",processed);
 		fflush(stdout);
 
 		#ifdef DEBUGGING

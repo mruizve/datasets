@@ -80,7 +80,7 @@ int main(int argc, char *argv[])
 			IOFile *source=FileOpen(argv[i],argv[i+1],IOSource);
 			if( NULL==source )
 			{
-				throw std::string("cannot identify the source file format");
+				throw "unknown data format of '"+std::string(argv[i])+"'";
 			}
 
 			// create data container and transfer data to it

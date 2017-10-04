@@ -26,7 +26,7 @@ typedef struct
 	size_t bytes;
 	void *pointer;
 	IOMajor ordering;
-} DMCudaArray;
+} DMArray;
 
 // function for parsing command line arguments
 int dmOptions(int argc, char *argv[], DMOptions *dm);
@@ -35,18 +35,18 @@ int dmOptions(int argc, char *argv[], DMOptions *dm);
 void cudaAssert(int code, const char *file, const char *fn, int line);
 
 // device arrays initialization
-DMCudaArray* dmCudaInitArray(const IOFile *file);
+DMArray* dmInitArray(const IOFile *file);
 
 // array sorting (based on Thrust sorting)
-DMCudaArray* dmCudaSortArray(const DMCudaArray *keys, size_t bsize);
+DMArray* dmSortArray(const DMArray *keys, size_t bsize);
 
 // unique keys frequency counting
-std::vector<int> dmCudaCountKeys(const DMCudaArray* keys);
+std::vector<int> dmCountUniqueKeys(const DMArray* keys);
 
 // distance matrix computation
-cv::Mat dmCudaDistanceMatrix(const DMCudaArray *features, const DMCudaArray *indexes, const std::vector<int> count, size_t bsize);
+cv::Mat dmDistanceMatrix(const DMArray *features, const DMArray *indexes, const std::vector<int> count, size_t bsize);
 
 // free device arrays
-void dmCudaFree(DMCudaArray *array);
+void dmFree(DMArray *array);
 
 #endif

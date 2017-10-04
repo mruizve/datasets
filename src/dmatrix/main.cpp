@@ -43,22 +43,22 @@ int main(int argc, char *argv[])
 		}
 
 		// create and initialize the features cuda array and free host resources
-		DMCudaArray *dm_features=dmCudaInitArray(features);
+		DMArray *dm_features=dmInitArray(features);
 
 		delete features;
 		features=NULL;
 
 		// create and initialize the labels cuda array and free host resources
-		DMCudaArray *dm_labels=dmCudaInitArray(labels);
+		DMArray *dm_labels=dmInitArray(labels);
 
 		delete labels;
 		labels=NULL;
 
 		// create and initialize the indexes cuda array
-		DMCudaArray *dm_indexes=dmCudaSortArray(dm_labels,dm.bsize);
+		DMArray *dm_indexes=dmSortArray(dm_labels,dm.bsize);
 
 		// count unique labels (identities)
-		std::vector<int> count=dmCudaCountKeys(dm_labels);
+		std::vector<int> count=dmCountUniqueKeys(dm_labels);
 
 		#ifdef DEBUGGING
 			std::cout << "count:" << std::endl;
@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 		#endif
 
 		// release labels array
-		dmCudaFree(dm_labels);
+		dmFree(dm_labels);
 
 		// compute indexes offsets
 		std::vector<int> offsets;
@@ -90,11 +90,11 @@ int main(int argc, char *argv[])
 		#endif
 
 		// compute distance matrix
-		cv::Mat matrix=dmCudaDistanceMatrix(dm_features,dm_indexes,offsets,dm.bsize);
+		cv::Mat matrix=dmDistanceMatrix(dm_features,dm_indexes,offsets,dm.bsize);
 
 		// release cuda arrays
-		dmCudaFree(dm_features);
-		dmCudaFree(dm_indexes);
+		dmFree(dm_features);
+		dmFree(dm_indexes);
 
 		// export the distances matrices
 		std::vector<cv::Mat> channels;
